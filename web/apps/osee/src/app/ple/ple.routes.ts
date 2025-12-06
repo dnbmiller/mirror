@@ -55,6 +55,10 @@ const routes: Routes = [
 		loadChildren: () =>
 			import('./artifact-explorer/artifact-explorer.routes'),
 	},
+	{
+		path: 'book/explorer',
+		loadChildren: () => import('./book-explorer/book-explorer.routes'),
+	},
 ];
 
 export default routes;
