@@ -1,0 +1,2079 @@
+
+--- FILE: features/org.eclipse.osee.core.server.external.feature/feature.xml ---
+[985] @@ -985,6 +985,13 @@
+985:               version="0.0.0"
+986:               unpack="false"/>
+987:
+988: +       <plugin
+989: +             id="bcmail"
+990: +             download-size="0"
+991: +             install-size="0"
+992: +             version="0.0.0"
+993: +             unpack="false"/>
+994: +
+995:         <plugin
+996:               id="bcpkix"
+997:               download-size="0"
+
+--- FILE: features/org.eclipse.osee.core.server.external.feature/pom.xml ---
+[144] @@ -144,6 +144,7 @@
+144:   								<plugin id="org.mortbay.jasper.apache-jsp" />
+145:   								<plugin id="com.sun.el.javax.el" />
+146:   								<plugin id="bcpkix" />
+147: + 								<plugin id="bcmail" />
+148:   								<plugin id="org.mozilla.javascript" />
+149:   								<plugin id="org.eclipse.jetty.ee8.security" />
+150:   								<plugin id="org.eclipse.jetty.ee8.server" />
+
+--- FILE: features/org.eclipse.osee.core.server.feature/feature.xml ---
+[521] @@ -521,6 +521,13 @@
+521:               version="0.0.0"
+522:               unpack="false"/>
+523:
+524: +       <plugin
+525: +             id="bcmail"
+526: +             download-size="0"
+527: +             install-size="0"
+528: +             version="0.0.0"
+529: +             unpack="false"/>
+530: +
+531:         <plugin
+532:               id="bcpkix"
+533:               download-size="0"
+
+--- FILE: features/org.eclipse.osee.dep.feature/feature.xml ---
+[615] @@ -615,6 +615,13 @@
+615:               version="0.0.0"
+616:               unpack="false"/>
+617:
+618: +       <plugin
+619: +             id="bcmail"
+620: +             download-size="0"
+621: +             install-size="0"
+622: +             version="0.0.0"
+623: +             unpack="false"/>
+624: +
+625:         <plugin
+626:               id="bcpkix"
+627:               download-size="0"
+
+--- FILE: features/org.eclipse.osee.dep.feature/pom.xml ---
+[138] @@ -138,9 +138,10 @@
+138:   								<plugin id="org.mortbay.jasper.apache-jsp" />
+139:   								<plugin id="com.sun.el.javax.el" />
+140:   								<plugin id="bcpkix" />
+141: + 								<plugin id="bcmail" />
+142:   								<plugin id="org.bouncycastle.bcpg" />
+     - 								<plugin id= "org.bouncycastle.bcpkix" />
+     - 								<plugin id= "org.bouncycastle.bcprov" />
+143: + 								<plugin id="org.bouncycastle.bcpkix" />
+144: + 								<plugin id="org.bouncycastle.bcprov" />
+145:   								<plugin id="org.apache.sshd.client.subsystem.sftp" />
+146:   								<feature id="org.eclipse.cdt.sdk" />
+147:   								<feature id="org.eclipse.jgit.gpg.bc" />
+
+--- FILE: features/org.eclipse.osee.external.feature/feature.xml ---
+[103] @@ -103,6 +103,13 @@
+103:               version="0.0.0"
+104:               unpack="false"/>
+105:
+106: +       <plugin
+107: +             id="bcmail"
+108: +             download-size="0"
+109: +             install-size="0"
+110: +             version="0.0.0"
+111: +             unpack="false"/>
+112: +
+113:         <plugin
+114:               id="bcpkix"
+115:               download-size="0"
+
+--- FILE: features/org.eclipse.osee.external.feature/pom.xml ---
+[52] @@ -52,6 +52,7 @@
+52:   								<plugin id="org.mortbay.jasper.apache-jsp" />
+53:   								<plugin id="com.sun.el.javax.el" />
+54:   								<plugin id="bcpkix" />
+55: + 								<plugin id="bcmail" />
+56:   								<plugin id="org.apache.commons.codec" />
+57:   								<plugin id="slf4j.api" />
+58:   								<plugin id="org.apache.logging.log4j.to.slf4j" />
+
+--- FILE: features/org.eclipse.osee.framework.feature/feature.xml ---
+[909] @@ -909,6 +909,13 @@
+909:               version="0.0.0"
+910:               unpack="false"/>
+911:
+912: +       <plugin
+913: +             id="bcmail"
+914: +             download-size="0"
+915: +             install-size="0"
+916: +             version="0.0.0"
+917: +             unpack="false"/>
+918: +
+919:         <plugin
+920:               id="bcpkix"
+921:               download-size="0"
+
+--- FILE: features/org.eclipse.osee.framework.feature/pom.xml ---
+[154] @@ -154,6 +154,7 @@
+154:   								<plugin id="org.mortbay.jasper.apache-jsp" />
+155:   								<plugin id="com.sun.el.javax.el" />
+156:   								<plugin id="bcpkix" />
+157: + 								<plugin id="bcmail" />
+158:   								<plugin id="org.eclipse.jetty.ee8.security" />
+159:   								<plugin id="org.eclipse.jetty.ee8.server" />
+160:   								<plugin id="org.eclipse.jetty.ee8.servlet" />
+
+--- FILE: plugins/org.eclipse.osee.framework.core/src/org/eclipse/osee/framework/core/enums/CoreAttributeTypes.java ---
+[277] @@ -277,7 +277,7 @@ public interface CoreAttributeTypes {
+277:      AttributeTypeString MobilePhone = osee.createString(1152921504606847080L, "Mobile Phone", MediaType.TEXT_PLAIN, "");
+278:      AttributeTypeString ModifiedFlag = osee.createString(1152921504606847284L, "Modified Flag", MediaType.TEXT_PLAIN, "File Modification Flag from Repository");
+279:      AttributeTypeString Name = osee.createString(1152921504606847088L, "Name", MediaType.TEXT_PLAIN, "Descriptive Name");
+     -    AttributeTypeString NameAbbrev= osee.createString(8355308043647703563L,"Name Abbrev",MediaType.TEXT_PLAIN,"");
+280: +    AttributeTypeString NameAbbrev = osee.createString(8355308043647703563L,"Name Abbrev",MediaType.TEXT_PLAIN,"");
+281:      AttributeTypeInputStream NativeContent = osee.createInputStreamNoTag(1152921504606847097L, "Native Content", MediaType.APPLICATION_OCTET_STREAM, "content that will be edited by a native program");
+282:      AttributeTypeString Notes = osee.createString(1152921504606847085L, "Notes", MediaType.TEXT_PLAIN, "");
+283:      AttributeTypeString ObjectName = osee.createString(336479226773047054L, "Object Name", MediaType.TEXT_PLAIN, "");
+
+--- FILE: plugins/org.eclipse.osee.osgi.converter/pom.xml ---
+[476] @@ -476,6 +476,11 @@
+476:   									<source>true</source>
+477:   								</artifact>
+478:
+479: + 								<artifact>
+480: + 									<id>org.bouncycastle:bcmail-jdk18on:jar:1.80</id>
+481: + 									<source>true</source>
+482: + 								</artifact>
+483: +
+484:   							</artifacts>
+485:   						</configuration>
+486:   						<goals>
+487:   .../core/enums/CoreArtifactTypes.java         |  1 +
+488:   .../core/enums/CoreAttributeTypes.java        |  1 +
+489:   .../internal/EmailCertificateServiceImpl.java | 68 +++++++++++++++++
+490:   .../osee/orcs/core/internal/OrcsApiImpl.java  |  9 +++
+491:   .../osee/orcs/rest/model/UserEndpoint.java    | 28 +++++++
+492:   .../META-INF/MANIFEST.MF                      |  6 +-
+493:   .../rest/internal/user/UserEndpointImpl.java  | 27 +++++++
+494:   .../src/org/eclipse/osee/orcs/OrcsApi.java    |  3 +
+495:   .../orcs/utility/EmailCertificateService.java | 36 +++++++++
+496:   .../EmailCertificateValidationException.java  | 26 +++++++
+497:   .../utility/EmailCertificateValidator.java    | 76 +++++++++++++++++++
+498:   11 files changed, 278 insertions(+), 3 deletions(-)
+499:   create mode 100644 plugins/org.eclipse.osee.orcs.core/src/org/eclipse/osee/orcs/core/internal/EmailCertificateServiceImpl.java
+500:   create mode 100644 plugins/org.eclipse.osee.orcs/src/org/eclipse/osee/orcs/utility/EmailCertificateService.java
+501:   create mode 100644 plugins/org.eclipse.osee.orcs/src/org/eclipse/osee/orcs/utility/EmailCertificateValidationException.java
+502:   create mode 100644 plugins/org.eclipse.osee.orcs/src/org/eclipse/osee/orcs/utility/EmailCertificateValidator.java
+
+--- FILE: plugins/org.eclipse.osee.framework.core/src/org/eclipse/osee/framework/core/enums/CoreArtifactTypes.java ---
+[774] @@ -774,6 +774,7 @@ public interface CoreArtifactTypes {
+774:         .zeroOrOne(Country)
+775:         .zeroOrOne(Dictionary)
+776:         .zeroOrOne(Email)
+777: +       .zeroOrOne(EmailPublicCertificate)
+778:         .zeroOrOne(AbridgedEmail)
+779:         .any(FavoriteBranch)
+780:         .zeroOrOne(FaxPhone)
+
+--- FILE: plugins/org.eclipse.osee.framework.core/src/org/eclipse/osee/framework/core/enums/CoreAttributeTypes.java ---
+[134] @@ -134,6 +134,7 @@ public interface CoreAttributeTypes {
+134:      AttributeTypeString ElapsedDate = osee.createString(1152921504606847296L, "Elapsed Date", MediaType.TEXT_PLAIN, "Time Elapsed from the start to the end of the script");
+135:      AttributeTypeInteger ElapsedTime = osee.createInteger(6083892673634294710L, "Elapsed Time", MediaType.TEXT_PLAIN, "Elapsed Time in Milliseconds");
+136:      AttributeTypeString Email = osee.createString(1152921504606847082L, "Email", MediaType.TEXT_PLAIN, "");
+137: +    AttributeTypeString EmailPublicCertificate = osee.createString(4924086760023447151L, "Email Public Certificate", MediaType.TEXT_PLAIN, "");
+138:      AttributeTypeString EndpointUrl = osee.createString(1103659738810857581L, "Endpoint URL", MediaType.TEXT_PLAIN, "");
+139:      AttributeTypeString ExcludePath = osee.createString(1152921504606847708L, "Exclude Path", MediaType.TEXT_PLAIN, "");
+140:      AttributeTypeString ExecutedBy = osee.createString(1152921504606847377L, "Executed By", MediaType.TEXT_PLAIN, "");
+
+--- FILE: plugins/org.eclipse.osee.orcs.core/src/org/eclipse/osee/orcs/core/internal/EmailCertificateServiceImpl.java ---
+[1] @@ -0,0 +1,68 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: + package org.eclipse.osee.orcs.core.internal;
+14: +
+15: + import java.security.cert.X509Certificate;
+16: + import org.eclipse.osee.framework.core.data.UserToken;
+17: + import org.eclipse.osee.framework.core.enums.CoreAttributeTypes;
+18: + import org.eclipse.osee.framework.core.enums.CoreBranches;
+19: + import org.eclipse.osee.orcs.OrcsApi;
+20: + import org.eclipse.osee.orcs.search.QueryFactory;
+21: + import org.eclipse.osee.orcs.transaction.TransactionBuilder;
+22: + import org.eclipse.osee.orcs.utility.EmailCertificateService;
+23: + import org.eclipse.osee.orcs.utility.EmailCertificateValidator;
+24: +
+25: + public class EmailCertificateServiceImpl implements EmailCertificateService {
+26: +
+27: +    private final OrcsApi orcsApi;
+28: +
+29: +    public EmailCertificateServiceImpl(OrcsApi orcsApi) {
+30: +       this.orcsApi = orcsApi;
+31: +    }
+32: +
+33: +    @Override
+34: +    public void setPublicCertificateForCurrentUser(String certificatePem) {
+35: +       // 1) Parse + basic validity (structure, dates)
+36: +       X509Certificate cert = EmailCertificateValidator.parseAndCheckBasicValidity(certificatePem);
+37: +
+38: +       // 2) Ensure it is intended for email use (key usage / EKU, etc.)
+39: +       EmailCertificateValidator.checkSuitableForEmail(cert);
+40: +
+41: +       // 3) Persist the PEM as-is for the current user
+42: +       UserToken user = orcsApi.userService().getUser();
+43: +
+44: +       TransactionBuilder tx = orcsApi.getTransactionFactory().createTransaction(CoreBranches.COMMON,
+45: +          "Store email public certificate associated with user.");
+46: +       tx.setSoleAttributeFromString(user.getArtifactId(), CoreAttributeTypes.EmailPublicCertificate, certificatePem);
+47: +       tx.commit();
+48: +    }
+49: +
+50: +    @Override
+51: +    public String getPublicCertificateForCurrentUser() {
+52: +       UserToken user = orcsApi.userService().getUser();
+53: +       QueryFactory queryFactory = orcsApi.getQueryFactory();
+54: +
+55: +       return queryFactory.fromBranch(CoreBranches.COMMON).andId(
+56: +          user.getArtifactId()).asArtifact().getSoleAttributeAsString(CoreAttributeTypes.EmailPublicCertificate, null);
+57: +    }
+58: +
+59: +    @Override
+60: +    public void deletePublicCertificateForCurrentUser() {
+61: +       UserToken user = orcsApi.userService().getUser();
+62: +
+63: +       TransactionBuilder tx = orcsApi.getTransactionFactory().createTransaction(CoreBranches.COMMON,
+64: +          "Delete email public certificate associated with user.");
+65: +       tx.deleteSoleAttribute(user.getArtifactId(), CoreAttributeTypes.EmailPublicCertificate);
+66: +       tx.commit();
+67: +    }
+68: + }
+
+--- FILE: plugins/org.eclipse.osee.orcs.core/src/org/eclipse/osee/orcs/core/internal/OrcsApiImpl.java ---
+[69] @@ -69,6 +69,7 @@
+69:   import org.eclipse.osee.orcs.search.QueryFactory;
+70:   import org.eclipse.osee.orcs.search.QueryIndexer;
+71:   import org.eclipse.osee.orcs.transaction.TransactionFactory;
+72: + import org.eclipse.osee.orcs.utility.EmailCertificateService;
+73:   import org.eclipse.osee.orcs.utility.KeyValueService;
+74:
+75:   /**
+[103] @@ -102,6 +103,7 @@ public class OrcsApiImpl extends OseeApiBase implements OrcsApi {
+103:      private WeakReference<ResourcesOperations> resourcesOperations;
+104:
+105:      private UserService userService;
+106: +    private EmailCertificateService emailCertificateService;
+107:      private ActivityLog activityLog;
+108:      private OrcsTypes orcsTypes;
+109:      AccessControlServiceImpl accessControlService;
+[205] @@ -203,6 +205,8 @@ public TransactionId getHeadTransaction(OrcsSession session, BranchId branch) {
+205:
+206:         userService = new UserServiceImpl(this);
+207:
+208: +       emailCertificateService = new EmailCertificateServiceImpl(this);
+209: +
+210:         accessControlService = new AccessControlServiceImpl(this);
+211:         accessControlService.bindUserService(userService);
+212:      }
+[311] @@ -307,6 +311,11 @@ public UserService userService() {
+311:         return userService;
+312:      }
+313:
+314: +    @Override
+315: +    public EmailCertificateService getEmailCertificateService() {
+316: +       return emailCertificateService;
+317: +    }
+318: +
+319:      @Override
+320:      public JdbcService getJdbcService() {
+321:         return dataStore.getJdbcService();
+
+--- FILE: plugins/org.eclipse.osee.orcs.rest.model/src/org/eclipse/osee/orcs/rest/model/UserEndpoint.java ---
+[12] @@ -12,10 +12,14 @@
+12:    **********************************************************************/
+13:   package org.eclipse.osee.orcs.rest.model;
+14:
+15: + import javax.ws.rs.Consumes;
+16: + import javax.ws.rs.DELETE;
+17:   import javax.ws.rs.GET;
+18: + import javax.ws.rs.PUT;
+19:   import javax.ws.rs.Path;
+20:   import javax.ws.rs.Produces;
+21:   import javax.ws.rs.core.MediaType;
+22: + import javax.ws.rs.core.Response;
+23:   import org.eclipse.osee.framework.core.data.UserTokens;
+24:
+25:   /**
+[31] @@ -27,4 +31,28 @@ public interface UserEndpoint {
+31:      @GET
+32:      @Produces(MediaType.APPLICATION_JSON)
+33:      public UserTokens get();
+34: +
+35: +    /**
+36: +     * Upload or replace the user's public certificate. Only PEM format certificates accepted because of key-value table
+37: +     * column types.
+38: +     */
+39: +    @PUT
+40: +    @Path("public-certificate")
+41: +    @Consumes({MediaType.TEXT_PLAIN})
+42: +    void uploadPublicCertificate(String certificatePem);
+43: +
+44: +    /**
+45: +     * Retrieve the user's public certificate.
+46: +     */
+47: +    @GET
+48: +    @Path("public-certificate")
+49: +    @Produces({MediaType.TEXT_PLAIN})
+50: +    Response getPublicCertificate();
+51: +
+52: +    /**
+53: +     * Delete the user's public certificate.
+54: +     */
+55: +    @DELETE
+56: +    @Path("public-certificate")
+57: +    void deletePublicCertificate();
+58:   }
+
+--- FILE: plugins/org.eclipse.osee.orcs.rest/META-INF/MANIFEST.MF ---
+[27] @@ -27,13 +27,12 @@ Import-Package: com.fasterxml.jackson.core,
+27:    javax.ws.rs.container,
+28:    javax.ws.rs.core,
+29:    javax.ws.rs.ext,
+30: +  javax.xml.ws,
+31:    org.apache.cxf.io,
+32:    org.apache.cxf.jaxrs.ext.multipart,
+33:    org.apache.cxf.jaxrs.model,
+34:    org.apache.cxf.jaxrs.utils,
+35:    org.apache.cxf.message,
+     -  javax.xml.ws,
+     -  org.osgi.service.http,
+36:    org.eclipse.core.runtime,
+37:    org.eclipse.jdt.core,
+38:    org.eclipse.jdt.core.compiler,
+[85] @@ -86,7 +85,8 @@ Import-Package: com.fasterxml.jackson.core,
+85:    org.eclipse.osee.orcs.search,
+86:    org.eclipse.osee.orcs.transaction,
+87:    org.eclipse.osee.orcs.utility,
+     -  org.osgi.service.event
+88: +  org.osgi.service.event,
+89: +  org.osgi.service.http
+90:   Osee-JaxRs-Resource: OSEE-INF/web/script/*;path=/orcs/script/ui,
+91:    OSEE-INF/web/example/*;path=/orcs/example/ui,
+92:    OSEE-INF/web/writer/*;path=/orcs/writer/ui,
+
+--- FILE: plugins/org.eclipse.osee.orcs.rest/src/org/eclipse/osee/orcs/rest/internal/user/UserEndpointImpl.java ---
+[14] @@ -14,6 +14,8 @@
+14:
+15:   import java.util.ArrayList;
+16:   import java.util.List;
+17: + import javax.ws.rs.core.MediaType;
+18: + import javax.ws.rs.core.Response;
+19:   import org.eclipse.osee.framework.core.data.ArtifactReadable;
+20:   import org.eclipse.osee.framework.core.data.UserGroupArtifactToken;
+21:   import org.eclipse.osee.framework.core.data.UserToken;
+[26] @@ -24,6 +26,7 @@
+26:   import org.eclipse.osee.framework.core.enums.CoreRelationTypes;
+27:   import org.eclipse.osee.orcs.OrcsApi;
+28:   import org.eclipse.osee.orcs.rest.model.UserEndpoint;
+29: + import org.eclipse.osee.orcs.utility.EmailCertificateService;
+30:
+31:   /**
+32:    * @author Donald G. Dunne
+[34] @@ -31,9 +34,11 @@
+34:   public class UserEndpointImpl implements UserEndpoint {
+35:
+36:      private final OrcsApi orcsApi;
+37: +    private final EmailCertificateService emailCertificateService;
+38:
+39:      public UserEndpointImpl(OrcsApi orcsApi) {
+40:         this.orcsApi = orcsApi;
+41: +       this.emailCertificateService = orcsApi.getEmailCertificateService();
+42:      }
+43:
+44:      @Override
+[60] @@ -55,4 +60,26 @@ public UserTokens get() {
+60:         return toks;
+61:      }
+62:
+63: +    @Override
+64: +    public void uploadPublicCertificate(String certificatePem) {
+65: +       emailCertificateService.setPublicCertificateForCurrentUser(certificatePem);
+66: +    }
+67: +
+68: +    @Override
+69: +    public Response getPublicCertificate() {
+70: +       String pemString = emailCertificateService.getPublicCertificateForCurrentUser();
+71: +
+72: +       if (pemString == null || pemString.isBlank()) {
+73: +          return Response.status(Response.Status.NOT_FOUND).entity("Public certificate not found for this user.").type(
+74: +             MediaType.TEXT_PLAIN).build();
+75: +       }
+76: +
+77: +       return Response.ok(pemString, MediaType.TEXT_PLAIN).header("Content-Disposition",
+78: +          "attachment; filename=\"public-cert.pem\"").build();
+79: +    }
+80: +
+81: +    @Override
+82: +    public void deletePublicCertificate() {
+83: +       emailCertificateService.deletePublicCertificateForCurrentUser();
+84: +    }
+85:   }
+
+--- FILE: plugins/org.eclipse.osee.orcs/src/org/eclipse/osee/orcs/OrcsApi.java ---
+[20] @@ -20,6 +20,7 @@
+20:   import org.eclipse.osee.orcs.search.QueryFactory;
+21:   import org.eclipse.osee.orcs.search.QueryIndexer;
+22:   import org.eclipse.osee.orcs.transaction.TransactionFactory;
+23: + import org.eclipse.osee.orcs.utility.EmailCertificateService;
+24:   import org.eclipse.osee.orcs.utility.KeyValueService;
+25:
+26:   /**
+[51] @@ -50,6 +51,8 @@ public interface OrcsApi extends OseeApi {
+51:
+52:      JdbcService getJdbcService();
+53:
+54: +    EmailCertificateService getEmailCertificateService();
+55: +
+56:      ActivityLog getActivityLog();
+57:
+58:      OrcsPurgeOps getPurgeOps();
+
+--- FILE: plugins/org.eclipse.osee.orcs/src/org/eclipse/osee/orcs/utility/EmailCertificateService.java ---
+[1] @@ -0,0 +1,36 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: + package org.eclipse.osee.orcs.utility;
+14: +
+15: + public interface EmailCertificateService {
+16: +
+17: +    /**
+18: +     * Parse, validate and store the current user's email public certificate.
+19: +     *
+20: +     * @param certificatePem PEM-encoded X.509 certificate string
+21: +     * @throws EmailCertificateValidationException if certificate is invalid or not suitable for email
+22: +     */
+23: +    void setPublicCertificateForCurrentUser(String certificatePem);
+24: +
+25: +    /**
+26: +     * Retrieve the current user's email public certificate (PEM).
+27: +     *
+28: +     * @return PEM string, or null if none is stored
+29: +     */
+30: +    String getPublicCertificateForCurrentUser();
+31: +
+32: +    /**
+33: +     * Delete the current user's email public certificate (if present).
+34: +     */
+35: +    void deletePublicCertificateForCurrentUser();
+36: + }
+
+--- FILE: plugins/org.eclipse.osee.orcs/src/org/eclipse/osee/orcs/utility/EmailCertificateValidationException.java ---
+[1] @@ -0,0 +1,26 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: + package org.eclipse.osee.orcs.utility;
+14: +
+15: + public class EmailCertificateValidationException extends RuntimeException {
+16: +
+17: +    private static final long serialVersionUID = 1L;
+18: +
+19: +    public EmailCertificateValidationException(String message) {
+20: +       super(message);
+21: +    }
+22: +
+23: +    public EmailCertificateValidationException(String message, Throwable cause) {
+24: +       super(message, cause);
+25: +    }
+26: + }
+
+--- FILE: plugins/org.eclipse.osee.orcs/src/org/eclipse/osee/orcs/utility/EmailCertificateValidator.java ---
+[1] @@ -0,0 +1,76 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: + package org.eclipse.osee.orcs.utility;
+14: +
+15: + import java.io.ByteArrayInputStream;
+16: + import java.security.cert.CertificateException;
+17: + import java.security.cert.CertificateFactory;
+18: + import java.security.cert.X509Certificate;
+19: + import java.util.Date;
+20: + import java.util.List;
+21: +
+22: + public final class EmailCertificateValidator {
+23: +
+24: +    // OID for ExtendedKeyUsage: email protection
+25: +    private static final String EKU_EMAIL_PROTECTION = "1.3.6.1.5.5.7.3.4";
+26: +
+27: +    private EmailCertificateValidator() {
+28: +    }
+29: +
+30: +    public static X509Certificate parseAndCheckBasicValidity(String pem) {
+31: +       if (pem == null || pem.isBlank()) {
+32: +          throw new EmailCertificateValidationException("Certificate is empty");
+33: +       }
+34: +
+35: +       try {
+36: +          String normalizedPem = stripPemHeaders(pem);
+37: +          byte[] derBytes = java.util.Base64.getDecoder().decode(normalizedPem);
+38: +
+39: +          CertificateFactory cf = CertificateFactory.getInstance("X.509");
+40: +          X509Certificate cert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(derBytes));
+41: +
+42: +          cert.checkValidity(new Date()); // throws CertificateException if expired/not yet valid
+43: +          return cert;
+44: +       } catch (IllegalArgumentException e) {
+45: +          throw new EmailCertificateValidationException("Certificate is not valid Base64 PEM", e);
+46: +       } catch (CertificateException e) {
+47: +          throw new EmailCertificateValidationException("Invalid X.509 certificate: " + e.getMessage(), e);
+48: +       }
+49: +    }
+50: +
+51: +    public static void checkSuitableForEmail(X509Certificate cert) {
+52: +       try {
+53: +          List<String> eku = cert.getExtendedKeyUsage();
+54: +          if (eku != null && !eku.contains(EKU_EMAIL_PROTECTION)) {
+55: +             throw new EmailCertificateValidationException(
+56: +                "Certificate is not intended for email protection (missing EKU emailProtection)");
+57: +          }
+58: +       } catch (CertificateException e) {
+59: +          throw new EmailCertificateValidationException("Certificate extended key usage is invalid for email", e);
+60: +       }
+61: +
+62: +       boolean[] keyUsage = cert.getKeyUsage();
+63: +       if (keyUsage != null) {
+64: +          boolean digitalSignature = keyUsage.length > 0 && keyUsage[0];
+65: +          boolean keyEncipherment = keyUsage.length > 2 && keyUsage[2];
+66: +          if (!digitalSignature && !keyEncipherment) {
+67: +             throw new EmailCertificateValidationException("Certificate key usage is not suitable for email");
+68: +          }
+69: +       }
+70: +    }
+71: +
+72: +    private static String stripPemHeaders(String pem) {
+73: +       return pem.replace("-----BEGIN CERTIFICATE-----", "").replace("-----END CERTIFICATE-----", "").replaceAll("\\s+",
+74: +          "");
+75: +    }
+76: + }
+77:   .../rest/internal/user/UserEndpointImpl.java  |   3 +-
+78:   pnpm-lock.yaml                                |  17 +-
+79:   web/apps/osee/package.json                    |   4 +-
+80:   web/apps/osee/src/app/actra/actra.routes.ts   |   8 +
+81:   web/apps/osee/src/app/app.routes.ts           |   4 +
+82:   ...blic-certificate-management.component.html | 179 +++++++++++
+83:   ...c-certificate-management.component.spec.ts |  48 +++
+84:   ...public-certificate-management.component.ts | 304 ++++++++++++++++++
+85:   .../certificate-management/profile.routes.ts  |  39 +++
+86:   ...lic-certificate-management.service.mock.ts |  23 ++
+87:   ...r-public-certificate-management.service.ts |  77 +++++
+88:   .../types/user-public-certificate-types.ts    |  24 ++
+89:   .../top-level-navigation-structure.ts         |  29 +-
+90:   13 files changed, 751 insertions(+), 8 deletions(-)
+91:   create mode 100644 web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.html
+92:   create mode 100644 web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.spec.ts
+93:   create mode 100644 web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.ts
+94:   create mode 100644 web/apps/osee/src/app/certificate-management/profile.routes.ts
+95:   create mode 100644 web/apps/osee/src/app/certificate-management/services/testing/user-public-certificate-management.service.mock.ts
+96:   create mode 100644 web/apps/osee/src/app/certificate-management/services/user-public-certificate-management.service.ts
+97:   create mode 100644 web/apps/osee/src/app/certificate-management/types/user-public-certificate-types.ts
+
+--- FILE: plugins/org.eclipse.osee.orcs.rest/src/org/eclipse/osee/orcs/rest/internal/user/UserEndpointImpl.java ---
+[70] @@ -70,8 +70,7 @@ public Response getPublicCertificate() {
+70:         String pemString = emailCertificateService.getPublicCertificateForCurrentUser();
+71:
+72:         if (pemString == null || pemString.isBlank()) {
+     -          return Response.status(Response.Status.NOT_FOUND).entity("Public certificate not found for this user.").type(
+     -             MediaType.TEXT_PLAIN).build();
+73: +          return Response.noContent().build();
+74:         }
+75:
+76:         return Response.ok(pemString, MediaType.TEXT_PLAIN).header("Content-Disposition",
+
+--- FILE: pnpm-lock.yaml ---
+[124] @@ -124,6 +124,9 @@ importers:
+124:         ngx-markdown:
+125:           specifier: ^18.0.0
+126:           version: 18.1.0(@angular/common@19.2.15(@angular/core@19.2.15(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@19.2.15(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@19.2.15(@angular/animations@19.2.15(@angular/common@19.2.15(@angular/core@19.2.15(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@19.2.15(rxjs@7.8.2)(zone.js@0.15.1)))(@angular/common@19.2.15(@angular/core@19.2.15(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@19.2.15(rxjs@7.8.2)(zone.js@0.15.1)))(marked@9.1.6)(rxjs@7.8.2)(zone.js@0.15.1)
+127: +       node-forge:
+128: +         specifier: ^1.3.3
+129: +         version: 1.3.3
+130:         rxjs:
+131:           specifier: ^7.5.7
+132:           version: 7.8.2
+[179] @@ -176,6 +179,9 @@ importers:
+179:         '@types/node':
+180:           specifier: ^20.16.1
+181:           version: 20.19.11
+182: +       '@types/node-forge':
+183: +         specifier: ^1.3.14
+184: +         version: 1.3.14
+185:         angular-eslint:
+186:           specifier: ^18.4.2
+187:           version: 18.4.3(chokidar@4.0.3)(eslint@9.34.0(jiti@1.21.7))(typescript-eslint@8.41.0(eslint@9.34.0(jiti@1.21.7))(typescript@5.5.4))(typescript@5.5.4)
+[4534] @@ -4528,6 +4534,7 @@ packages:
+4534:
+4535:     glob@7.2.3:
+4536:       resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
+4537: +     deprecated: Glob versions prior to v9 are no longer supported
+4538:
+4539:     global-modules@2.0.0:
+4540:       resolution: {integrity: sha512-NGbfmJBp9x8IxyJSd1P+otYK8vonoJactOogrVfFRIAEY1ukil8RSKDz2Yo7wh1oihl51l/r6W4epkeKJHqL8A==}
+[4810] @@ -4803,6 +4810,7 @@ packages:
+4810:
+4811:     inflight@1.0.6:
+4812:       resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
+4813: +     deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+4814:
+4815:     inherits@2.0.3:
+4816:       resolution: {integrity: sha512-x00IRNXNy63jwGkJmzPigoySHbaqpNuzKbBOmzK+g2OdZpQ9w+sxCN+VSB3ja7IAge2OP2qpfxTjeNcyjmW1uw==}
+[5752] @@ -5744,8 +5752,8 @@ packages:
+5752:         encoding:
+5753:           optional: true
+5754:
+     -   node-forge@1.3.1:
+     -     resolution: {integrity: sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==}
+5755: +   node-forge@1.3.3:
+5756: +     resolution: {integrity: sha512-rLvcdSyRCyouf6jcOIPe/BgwG/d7hKjzMKOas33/pHEr6gbq18IK9zV7DiPvzsz0oBJPme6qr6H6kGZuI9/DZg==}
+5757:       engines: {node: '>= 6.13.0'}
+5758:
+5759:     node-gyp-build-optional-packages@5.2.2:
+[6543] @@ -6535,6 +6543,7 @@ packages:
+6543:
+6544:     rimraf@3.0.2:
+6545:       resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
+6546: +     deprecated: Rimraf versions prior to v4 are no longer supported
+6547:       hasBin: true
+6548:
+6549:     rollup@4.34.8:
+[14240] @@ -14231,7 +14240,7 @@ snapshots:
+14240:       optionalDependencies:
+14241:         encoding: 0.1.13
+14242:
+     -   node-forge@1.3.1: {}
+14243: +   node-forge@1.3.3: {}
+14244:
+14245:     node-gyp-build-optional-packages@5.2.2:
+14246:       dependencies:
+[15217] @@ -15208,7 +15217,7 @@ snapshots:
+15217:     selfsigned@2.4.1:
+15218:       dependencies:
+15219:         '@types/node-forge': 1.3.14
+     -       node-forge: 1.3.1
+15220: +       node-forge: 1.3.3
+15221:
+15222:     semver@5.7.2: {}
+15223:
+
+--- FILE: web/apps/osee/package.json ---
+[60] @@ -60,6 +60,7 @@
+60:   		"material-design-icons": "^3.0.1",
+61:   		"ng2-charts": "^5.0.3",
+62:   		"ngx-markdown": "^18.0.0",
+63: + 		"node-forge": "^1.3.3",
+64:   		"rxjs": "^7.5.7",
+65:   		"tslib": "^2.0.0",
+66:   		"zone.js": "~0.15.0"
+[69] @@ -68,6 +69,7 @@
+69:   		"@angular-devkit/build-angular": "^19.0.1",
+70:   		"@angular/cli": "^19.0.1",
+71:   		"@angular/compiler-cli": "^19.0.0",
+72: + 		"@eslint/js": "^9.34.0",
+73:   		"@ngx-playwright/test": "^0.5.11",
+74:   		"@playwright/test": "^1.50.1",
+75:   		"@snuggery/snuggery": "^0.12.3",
+[80] @@ -78,10 +80,10 @@
+80:   		"@types/jasmine": "~3.6.0",
+81:   		"@types/marked": "^4.0.7",
+82:   		"@types/node": "^20.16.1",
+83: + 		"@types/node-forge": "^1.3.14",
+84:   		"angular-eslint": "^18.4.2",
+85:   		"autoprefixer": "^10.4.13",
+86:   		"eslint": "^9.9.0",
+     - 		"@eslint/js": "^9.34.0",
+87:   		"eslint-config-prettier": "^9.1.0",
+88:   		"eslint-plugin-tailwindcss": "^3.17.4",
+89:   		"jasmine-core": "~3.8.0",
+
+--- FILE: web/apps/osee/src/app/actra/actra.routes.ts ---
+[11] @@ -11,6 +11,11 @@
+11:    *     Boeing - initial API and implementation
+12:    **********************************************************************/
+13:   import { Routes } from '@angular/router';
+14: + import { navigationStructure } from '@osee/layout/routing';
+15: +
+16: + const actra = navigationStructure.find((page) => page.label === 'AcTra');
+17: +
+18: + const world = actra?.children.find((page) => page.label === 'World');
+19:
+20:   export const routes: Routes = [
+21:   	{
+[26] @@ -21,14 +26,17 @@ export const routes: Routes = [
+26:   	{ path: '', redirectTo: 'world', pathMatch: 'prefix' },
+27:   	{
+28:   		path: 'world',
+29: + 		title: world?.pageTitle || 'OSEE',
+30:   		loadChildren: () => import('./world/world.routes'),
+31:   	},
+32:   	{
+33:   		path: 'workflow',
+34: + 		title: 'AcTra - Workflow',
+35:   		loadChildren: () => import('./workflow/workflow.routes'),
+36:   	},
+37:   	{
+38:   		path: 'action/create',
+39: + 		title: 'AcTra - Create Action',
+40:   		loadChildren: () =>
+41:   			import(
+42:   				'./actra-create-action-page/actra-create-action-page.routes'
+
+--- FILE: web/apps/osee/src/app/app.routes.ts ---
+[26] @@ -26,6 +26,10 @@ export const routes: Routes = [
+26:   		path: 'actra',
+27:   		loadChildren: () => import('./actra/actra.routes'),
+28:   	},
+29: + 	{
+30: + 		path: 'certificate-management',
+31: + 		loadChildren: () => import('./certificate-management/profile.routes'),
+32: + 	},
+33:   	{
+34:   		path: 'world',
+35:   		loadChildren: () => import('./world/world.routes'),
+
+--- FILE: web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.html ---
+[1] @@ -0,0 +1,179 @@
+1: + <!--
+2: + /*********************************************************************
+3: + * Copyright (c) 2026 Boeing
+4: + *
+5: + * This program and the accompanying materials are made
+6: + * available under the terms of the Eclipse Public License 2.0
+7: + * which is available at https://www.eclipse.org/legal/epl-2.0/
+8: + *
+9: + * SPDX-License-Identifier: EPL-2.0
+10: + *
+11: + * Contributors:
+12: + *     Boeing - initial API and implementation
+13: + **********************************************************************/
+14: + -->
+15: + <div class="tw-mx-auto tw-flex tw-max-w-3xl tw-flex-col tw-gap-4 tw-p-4">
+16: + 	<mat-card class="tw-p-4">
+17: + 		<div class="tw-flex tw-items-start tw-justify-between tw-gap-4">
+18: + 			<div class="tw-flex tw-flex-col tw-gap-1">
+19: + 				<div class="tw-flex tw-items-center tw-gap-2">
+20: + 					<mat-icon class="tw-text-osee-blue-6">security</mat-icon>
+21: + 					<div class="tw-text-lg tw-font-semibold">
+22: + 						User Public Certificate Management
+23: + 					</div>
+24: + 				</div>
+25: +
+26: + 				<div class="tw-text-sm tw-text-osee-neutral-60">
+27: + 					View, download, delete, or replace your public email
+28: + 					certificate.
+29: + 				</div>
+30: + 			</div>
+31: +
+32: + 			@if (
+33: + 				loadingGlobal() === 'true' ||
+34: + 				existingPemResource.isLoading() ||
+35: + 				isProcessingCandidate()
+36: + 			) {
+37: + 				<div class="tw-flex tw-items-center tw-gap-2">
+38: + 					<mat-progress-spinner
+39: + 						mode="indeterminate"
+40: + 						diameter="18"></mat-progress-spinner>
+41: + 					<div class="tw-text-sm tw-text-osee-neutral-60">
+42: + 						@if (existingPemResource.isLoading()) {
+43: + 							Loading
+44: + 						} @else if (isProcessingCandidate()) {
+45: + 							Processing
+46: + 						} @else {
+47: + 							Working
+48: + 						}
+49: + 					</div>
+50: + 				</div>
+51: + 			}
+52: + 		</div>
+53: + 	</mat-card>
+54: +
+55: + 	<mat-card class="tw-p-4">
+56: + 		<div class="tw-flex tw-flex-col tw-gap-3">
+57: + 			<div class="tw-text-sm tw-font-medium">
+58: + 				Current Certificate On File
+59: + 			</div>
+60: +
+61: + 			@if (hasExistingCertificate()) {
+62: + 				<div class="tw-grid tw-grid-cols-1 tw-gap-2 md:tw-grid-cols-2">
+63: + 					<div class="tw-flex tw-flex-col tw-gap-1">
+64: + 						<div class="tw-text-xs tw-text-osee-neutral-60">
+65: + 							Subject CN
+66: + 						</div>
+67: + 						<div class="tw-text-sm tw-font-medium">
+68: + 							{{ existingSummary()?.subjectCn ?? '—' }}
+69: + 						</div>
+70: + 					</div>
+71: +
+72: + 					<div class="tw-flex tw-flex-col tw-gap-1">
+73: + 						<div class="tw-text-xs tw-text-osee-neutral-60">
+74: + 							Expiration Date
+75: + 						</div>
+76: + 						<div class="tw-text-sm tw-font-medium">
+77: + 							{{ existingSummary()?.notAfter | date: 'medium' }}
+78: + 						</div>
+79: + 					</div>
+80: + 				</div>
+81: +
+82: + 				<div
+83: + 					class="tw-mt-2 tw-flex tw-items-center tw-justify-end tw-gap-2">
+84: + 					<span
+85: + 						class="tw-inline-flex"
+86: + 						[matTooltip]="disableDownloadReason() ?? ''"
+87: + 						[matTooltipDisabled]="!disableDownloadReason()">
+88: + 						<button
+89: + 							mat-stroked-button
+90: + 							type="button"
+91: + 							[disabled]="!!disableDownloadReason()"
+92: + 							(click)="onDownloadExisting()">
+93: + 							Download
+94: + 						</button>
+95: + 					</span>
+96: +
+97: + 					<span
+98: + 						class="tw-inline-flex"
+99: + 						[matTooltip]="disableDeleteReason() ?? ''"
+100: + 						[matTooltipDisabled]="!disableDeleteReason()">
+101: + 						<button
+102: + 							mat-stroked-button
+103: + 							type="button"
+104: + 							[disabled]="!!disableDeleteReason()"
+105: + 							(click)="onDeleteExisting()">
+106: + 							Delete
+107: + 						</button>
+108: + 					</span>
+109: + 				</div>
+110: + 			} @else {
+111: + 				<div class="tw-text-sm tw-text-osee-neutral-60">
+112: + 					No certificate is currently on file.
+113: + 				</div>
+114: + 			}
+115: + 		</div>
+116: + 	</mat-card>
+117: +
+118: + 	<mat-card class="tw-p-4">
+119: + 		<div class="tw-flex tw-flex-col tw-gap-3">
+120: + 			<div class="tw-text-sm tw-font-medium">Replace Certificate</div>
+121: +
+122: + 			<osee-drag-and-drop-upload
+123: + 				accept=".pem,.crt,.cer,.der"
+124: + 				[title]="'Drag & Drop Certificate Here'"
+125: + 				[subtitle]="'or'"
+126: + 				[buttonLabel]="'Choose Certificate File'"
+127: + 				[multiple]="false"
+128: + 				(filesSelected)="onFilesSelected($event)">
+129: + 			</osee-drag-and-drop-upload>
+130: +
+131: + 			@if (selectedFile()) {
+132: + 				<div class="tw-flex tw-items-start tw-justify-between tw-gap-4">
+133: + 					<div class="tw-flex tw-flex-col tw-gap-1">
+134: + 						<div class="tw-text-xs tw-text-osee-neutral-60">
+135: + 							Selected File
+136: + 						</div>
+137: + 						<div class="tw-text-sm tw-font-medium">
+138: + 							{{ selectedFile()!.name }}
+139: + 						</div>
+140: + 					</div>
+141: +
+142: + 					@if (candidateSummary()) {
+143: + 						<div class="tw-flex tw-flex-col tw-items-end tw-gap-1">
+144: + 							<div class="tw-text-xs tw-text-osee-neutral-60">
+145: + 								Expiration Date
+146: + 							</div>
+147: + 							<div class="tw-text-sm tw-font-medium">
+148: + 								{{
+149: + 									candidateSummary()!.notAfter
+150: + 										| date: 'medium'
+151: + 								}}
+152: + 							</div>
+153: + 						</div>
+154: + 					}
+155: + 				</div>
+156: +
+157: + 				<div class="tw-flex tw-items-center tw-justify-end tw-gap-2">
+158: + 					<span
+159: + 						class="tw-inline-flex"
+160: + 						[matTooltip]="disableReplaceReason() ?? ''"
+161: + 						[matTooltipDisabled]="!disableReplaceReason()">
+162: + 						<button
+163: + 							mat-raised-button
+164: + 							type="button"
+165: + 							class="tw-rounded tw-bg-osee-blue-6 tw-text-osee-neutral-100 hover:tw-bg-osee-blue-7 disabled:tw-cursor-not-allowed disabled:tw-bg-osee-neutral-25 disabled:tw-text-osee-neutral-60"
+166: + 							[disabled]="!!disableReplaceReason()"
+167: + 							(click)="onReplace()">
+168: + 							Replace
+169: + 						</button>
+170: + 					</span>
+171: + 				</div>
+172: + 			} @else {
+173: + 				<div class="tw-text-sm tw-text-osee-neutral-60">
+174: + 					Select a certificate to replace the current one.
+175: + 				</div>
+176: + 			}
+177: + 		</div>
+178: + 	</mat-card>
+179: + </div>
+
+--- FILE: web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.spec.ts ---
+[1] @@ -0,0 +1,48 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: + import { ComponentFixture, TestBed } from '@angular/core/testing';
+14: +
+15: + import { UserPublicCertificateManagementComponent } from './user-public-certificate-management.component';
+16: + import { provideHttpClientTesting } from '@angular/common/http/testing';
+17: + import { provideHttpClient } from '@angular/common/http';
+18: + import { UserPublicCertificateManagementService } from '../../services/user-public-certificate-management.service';
+19: + import { UserPublicCertificateManagementServiceMock } from '../../services/testing/user-public-certificate-management.service.mock';
+20: +
+21: + describe('UserPublicCertificateManagementComponent', () => {
+22: + 	let component: UserPublicCertificateManagementComponent;
+23: + 	let fixture: ComponentFixture<UserPublicCertificateManagementComponent>;
+24: +
+25: + 	beforeEach(async () => {
+26: + 		await TestBed.configureTestingModule({
+27: + 			imports: [UserPublicCertificateManagementComponent],
+28: + 			providers: [
+29: + 				{
+30: + 					provide: UserPublicCertificateManagementService,
+31: + 					useValue: UserPublicCertificateManagementServiceMock,
+32: + 				},
+33: + 				provideHttpClient(),
+34: + 				provideHttpClientTesting(),
+35: + 			],
+36: + 		}).compileComponents();
+37: +
+38: + 		fixture = TestBed.createComponent(
+39: + 			UserPublicCertificateManagementComponent
+40: + 		);
+41: + 		component = fixture.componentInstance;
+42: + 		fixture.detectChanges();
+43: + 	});
+44: +
+45: + 	it('should create', () => {
+46: + 		expect(component).toBeTruthy();
+47: + 	});
+48: + });
+
+--- FILE: web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.ts ---
+[1] @@ -0,0 +1,304 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: + import { CommonModule } from '@angular/common';
+14: + import {
+15: + 	ChangeDetectionStrategy,
+16: + 	Component,
+17: + 	computed,
+18: + 	inject,
+19: + 	signal,
+20: + } from '@angular/core';
+21: + import { toSignal } from '@angular/core/rxjs-interop';
+22: + import { MatButton } from '@angular/material/button';
+23: + import { MatCard } from '@angular/material/card';
+24: + import { MatIcon } from '@angular/material/icon';
+25: + import { MatProgressSpinner } from '@angular/material/progress-spinner';
+26: + import { MatTooltip } from '@angular/material/tooltip';
+27: + import * as forge from 'node-forge';
+28: +
+29: + import { DragAndDropUploadComponent } from '@osee/shared/components';
+30: + import { UiService } from '@osee/shared/services';
+31: + import { HttpLoadingService } from '@osee/shared/services/network';
+32: +
+33: + import { UserPublicCertificateManagementService } from '../../services/user-public-certificate-management.service';
+34: + import {
+35: + 	CertificateSummary,
+36: + 	CertificateProcessResult,
+37: + } from '../../types/user-public-certificate-types';
+38: +
+39: + @Component({
+40: + 	selector: 'osee-user-public-certificate-management',
+41: + 	standalone: true,
+42: + 	imports: [
+43: + 		CommonModule,
+44: + 		DragAndDropUploadComponent,
+45: + 		MatButton,
+46: + 		MatCard,
+47: + 		MatIcon,
+48: + 		MatProgressSpinner,
+49: + 		MatTooltip,
+50: + 	],
+51: + 	changeDetection: ChangeDetectionStrategy.OnPush,
+52: + 	templateUrl: './user-public-certificate-management.component.html',
+53: + })
+54: + export class UserPublicCertificateManagementComponent {
+55: + 	private readonly service = inject(UserPublicCertificateManagementService);
+56: + 	private readonly loadingService = inject(HttpLoadingService);
+57: + 	protected readonly uiService = inject(UiService);
+58: +
+59: + 	protected readonly $loadingGlobal = this.loadingService.isLoading;
+60: + 	protected readonly loadingGlobal = toSignal(this.$loadingGlobal, {
+61: + 		initialValue: 'false',
+62: + 	});
+63: +
+64: + 	protected readonly loadingGlobalBusy = computed<boolean>(() => {
+65: + 		return this.loadingGlobal() === 'true';
+66: + 	});
+67: +
+68: + 	protected readonly existingPemResource =
+69: + 		this.service.getPublicCertificateResource();
+70: +
+71: + 	protected readonly existingPem = computed<string | null>(() => {
+72: + 		const pem = this.existingPemResource.value();
+73: + 		if (typeof pem !== 'string') return null;
+74: +
+75: + 		const trimmed = pem.trim();
+76: + 		return trimmed.length ? this.normalizePem(trimmed) : null;
+77: + 	});
+78: +
+79: + 	protected readonly existingSummary = computed<CertificateSummary | null>(
+80: + 		() => {
+81: + 			const pem = this.existingPem();
+82: + 			if (!pem) return null;
+83: +
+84: + 			try {
+85: + 				return this.summarizePem(pem);
+86: + 			} catch {
+87: + 				return null;
+88: + 			}
+89: + 		}
+90: + 	);
+91: +
+92: + 	protected readonly selectedFile = signal<File | null>(null);
+93: + 	protected readonly candidatePem = signal<string | null>(null);
+94: + 	protected readonly candidateSummary = signal<CertificateSummary | null>(
+95: + 		null
+96: + 	);
+97: + 	protected readonly isProcessingCandidate = signal<boolean>(false);
+98: +
+99: + 	protected readonly hasExistingCertificate = computed<boolean>(() => {
+100: + 		const pem = this.existingPem();
+101: + 		return typeof pem === 'string' && pem.trim().length > 0;
+102: + 	});
+103: +
+104: + 	protected readonly disableDownloadReason = computed<string | null>(() => {
+105: + 		if (this.loadingGlobalBusy()) return 'A request is in progress.';
+106: + 		if (this.existingPemResource.isLoading())
+107: + 			return 'Certificate is still loading.';
+108: + 		if (!this.existingPem()) return 'No certificate is currently on file.';
+109: + 		return null;
+110: + 	});
+111: +
+112: + 	protected readonly disableDeleteReason = computed<string | null>(() => {
+113: + 		if (this.loadingGlobalBusy()) return 'A request is in progress.';
+114: + 		if (this.existingPemResource.isLoading())
+115: + 			return 'Certificate is still loading.';
+116: + 		if (!this.existingPem()) return 'No certificate is currently on file.';
+117: + 		return null;
+118: + 	});
+119: +
+120: + 	protected readonly disableReplaceReason = computed<string | null>(() => {
+121: + 		if (this.loadingGlobalBusy()) return 'A request is in progress.';
+122: + 		if (this.isProcessingCandidate())
+123: + 			return 'Selected certificate is still being processed.';
+124: + 		if (!this.selectedFile())
+125: + 			return 'Select a certificate file to replace the current one.';
+126: + 		if (!this.candidatePem())
+127: + 			return 'The selected file isn’t a valid X.509 certificate.';
+128: + 		if (
+129: + 			this.candidateSummary() &&
+130: + 			!this.candidateSummary()!.isDateValidNow
+131: + 		) {
+132: + 			return 'Selected certificate is expired or not yet valid.';
+133: + 		}
+134: + 		return null;
+135: + 	});
+136: +
+137: + 	protected async onFilesSelected(files: File[]): Promise<void> {
+138: + 		this.uiService.ErrorText = '';
+139: +
+140: + 		const file = files[0] ?? null;
+141: + 		this.selectedFile.set(file);
+142: + 		this.candidatePem.set(null);
+143: + 		this.candidateSummary.set(null);
+144: +
+145: + 		if (!file) return;
+146: +
+147: + 		this.isProcessingCandidate.set(true);
+148: + 		try {
+149: + 			const result = await this.processCertificateFromFile(file);
+150: + 			this.candidatePem.set(result.pem);
+151: + 			this.candidateSummary.set(result.summary);
+152: +
+153: + 			if (!result.summary.isDateValidNow) {
+154: + 				this.uiService.ErrorText =
+155: + 					'Selected certificate is expired or not yet valid. Please choose a valid certificate.';
+156: + 			}
+157: + 		} catch (error: unknown) {
+158: + 			this.uiService.ErrorText = this.toErrorMessage(error);
+159: + 		} finally {
+160: + 			this.isProcessingCandidate.set(false);
+161: + 		}
+162: + 	}
+163: +
+164: + 	protected async onDownloadExisting(): Promise<void> {
+165: + 		this.uiService.ErrorText = '';
+166: +
+167: + 		try {
+168: + 			const response = await this.service.downloadPublicCertificate();
+169: + 			const pem = this.normalizePem(response.body ?? '');
+170: + 			const fileName =
+171: + 				this.tryParseFileNameFromContentDisposition(
+172: + 					response.headers.get('Content-Disposition')
+173: + 				) ?? 'public-cert.pem';
+174: +
+175: + 			this.downloadTextFile({
+176: + 				fileName,
+177: + 				contents: pem,
+178: + 				mimeType: 'application/x-pem-file',
+179: + 			});
+180: + 		} catch (error: unknown) {
+181: + 			this.uiService.ErrorText = this.toErrorMessage(error);
+182: + 		}
+183: + 	}
+184: +
+185: + 	protected async onDeleteExisting(): Promise<void> {
+186: + 		if (!this.existingPem()) return;
+187: +
+188: + 		this.uiService.ErrorText = '';
+189: + 		try {
+190: + 			await this.service.deletePublicCertificate();
+191: + 		} catch (error: unknown) {
+192: + 			this.uiService.ErrorText = this.toErrorMessage(error);
+193: + 		}
+194: + 	}
+195: +
+196: + 	protected async onReplace(): Promise<void> {
+197: + 		this.uiService.ErrorText = '';
+198: +
+199: + 		const pem = this.candidatePem();
+200: + 		if (!pem) {
+201: + 			this.uiService.ErrorText =
+202: + 				'No certificate is ready to replace the current one.';
+203: + 			return;
+204: + 		}
+205: +
+206: + 		try {
+207: + 			await this.service.uploadPublicCertificate({ certificatePem: pem });
+208: +
+209: + 			this.selectedFile.set(null);
+210: + 			this.candidatePem.set(null);
+211: + 			this.candidateSummary.set(null);
+212: + 		} catch (error: unknown) {
+213: + 			this.uiService.ErrorText = this.toErrorMessage(error);
+214: + 		}
+215: + 	}
+216: +
+217: + 	private async processCertificateFromFile(
+218: + 		file: File
+219: + 	): Promise<CertificateProcessResult> {
+220: + 		const text = await file.text();
+221: + 		const pem = this.isPemCertificate(text)
+222: + 			? this.normalizePem(text)
+223: + 			: this.convertDerToPem(await file.arrayBuffer());
+224: +
+225: + 		const summary = this.summarizePem(pem);
+226: + 		return { pem, summary };
+227: + 	}
+228: +
+229: + 	private summarizePem(pem: string): CertificateSummary {
+230: + 		const cert = forge.pki.certificateFromPem(pem);
+231: +
+232: + 		const cnAttr = cert.subject.attributes.find(
+233: + 			(a) => a.name === 'commonName'
+234: + 		);
+235: + 		const subjectCn =
+236: + 			typeof cnAttr?.value === 'string' ? cnAttr.value : null;
+237: +
+238: + 		const notBefore = cert.validity.notBefore;
+239: + 		const notAfter = cert.validity.notAfter;
+240: + 		const now = new Date();
+241: +
+242: + 		return {
+243: + 			subjectCn,
+244: + 			notBefore,
+245: + 			notAfter,
+246: + 			isDateValidNow: now >= notBefore && now <= notAfter,
+247: + 		};
+248: + 	}
+249: +
+250: + 	private isPemCertificate(text: string): boolean {
+251: + 		return text.includes('-----BEGIN CERTIFICATE-----');
+252: + 	}
+253: +
+254: + 	private normalizePem(pem: string): string {
+255: + 		return pem.replace(/\r\n/g, '\n').trim() + '\n';
+256: + 	}
+257: +
+258: + 	private convertDerToPem(arrayBuffer: ArrayBuffer): string {
+259: + 		const bytes = this.bytesToStringDecoder(new Uint8Array(arrayBuffer));
+260: + 		const asn1Obj = forge.asn1.fromDer(bytes);
+261: + 		const cert = forge.pki.certificateFromAsn1(asn1Obj);
+262: + 		return forge.pki.certificateToPem(cert);
+263: + 	}
+264: +
+265: + 	private bytesToStringDecoder(bytes: Uint8Array): string {
+266: + 		let result = '';
+267: + 		for (const byteValue of bytes) {
+268: + 			result += String.fromCharCode(byteValue);
+269: + 		}
+270: + 		return result;
+271: + 	}
+272: +
+273: + 	private tryParseFileNameFromContentDisposition(
+274: + 		value: string | null
+275: + 	): string | null {
+276: + 		if (!value) return null;
+277: + 		const match = /filename="([^"]+)"/i.exec(value);
+278: + 		return match?.[1] ?? null;
+279: + 	}
+280: +
+281: + 	private downloadTextFile(params: {
+282: + 		readonly fileName: string;
+283: + 		readonly contents: string;
+284: + 		readonly mimeType: string;
+285: + 	}): void {
+286: + 		const blob = new Blob([params.contents], { type: params.mimeType });
+287: + 		const url = URL.createObjectURL(blob);
+288: +
+289: + 		try {
+290: + 			const anchor = document.createElement('a');
+291: + 			anchor.href = url;
+292: + 			anchor.download = params.fileName;
+293: + 			anchor.rel = 'noopener';
+294: + 			anchor.click();
+295: + 		} finally {
+296: + 			URL.revokeObjectURL(url);
+297: + 		}
+298: + 	}
+299: +
+300: + 	private toErrorMessage(error: unknown): string {
+301: + 		if (error instanceof Error) return error.message;
+302: + 		return 'Request failed.';
+303: + 	}
+304: + }
+
+--- FILE: web/apps/osee/src/app/certificate-management/profile.routes.ts ---
+[1] @@ -0,0 +1,39 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: + import { Routes } from '@angular/router';
+14: + import { navigationStructure } from '@osee/layout/routing';
+15: +
+16: + const profile = navigationStructure.find((page) => page.label === 'Profile');
+17: +
+18: + const certs = profile?.children.find(
+19: + 	(page) => page.label === 'Certificate Management'
+20: + );
+21: +
+22: + const routes: Routes = [
+23: + 	{
+24: + 		path: '',
+25: + 		loadChildren: () => import('@osee/toolbar'),
+26: + 		outlet: 'toolbar',
+27: + 		pathMatch: 'full',
+28: + 	},
+29: + 	{
+30: + 		path: '',
+31: + 		title: certs?.pageTitle || 'OSEE',
+32: + 		loadComponent: () =>
+33: + 			import(
+34: + 				'./components/user-public-certificate-management/user-public-certificate-management.component'
+35: + 			).then((m) => m.UserPublicCertificateManagementComponent),
+36: + 	},
+37: + ];
+38: +
+39: + export default routes;
+
+--- FILE: web/apps/osee/src/app/certificate-management/services/testing/user-public-certificate-management.service.mock.ts ---
+[1] @@ -0,0 +1,23 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: + import { httpResource } from '@angular/common/http';
+14: + import { UserPublicCertificateManagementService } from '../user-public-certificate-management.service';
+15: +
+16: + export const UserPublicCertificateManagementServiceMock: Partial<UserPublicCertificateManagementService> =
+17: + 	{
+18: + 		getPublicCertificateResource() {
+19: + 			return httpResource(() => {
+20: + 				return '';
+21: + 			});
+22: + 		},
+23: + 	};
+
+--- FILE: web/apps/osee/src/app/certificate-management/services/user-public-certificate-management.service.ts ---
+[1] @@ -0,0 +1,77 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: + import { inject, Injectable } from '@angular/core';
+14: + import {
+15: + 	HttpClient,
+16: + 	HttpHeaders,
+17: + 	HttpResponse,
+18: + 	httpResource,
+19: + 	HttpResourceRef,
+20: + } from '@angular/common/http';
+21: + import { firstValueFrom } from 'rxjs';
+22: +
+23: + import { apiURL } from '@osee/environments';
+24: + import { UiService } from '@osee/shared/services';
+25: +
+26: + export type UploadPublicCertificateRequest = {
+27: + 	readonly certificatePem: string;
+28: + };
+29: +
+30: + @Injectable({ providedIn: 'root' })
+31: + export class UserPublicCertificateManagementService {
+32: + 	private readonly http = inject(HttpClient);
+33: + 	private readonly uiService = inject(UiService);
+34: +
+35: + 	getPublicCertificateResource(): HttpResourceRef<string | undefined> {
+36: + 		return httpResource.text(() => {
+37: + 			this.uiService.updateCount();
+38: +
+39: + 			return apiURL + `/orcs/user/public-certificate`;
+40: + 		});
+41: + 	}
+42: +
+43: + 	downloadPublicCertificate(): Promise<HttpResponse<string>> {
+44: + 		return firstValueFrom(
+45: + 			this.http.get(apiURL + `/orcs/user/public-certificate`, {
+46: + 				responseType: 'text',
+47: + 				observe: 'response',
+48: + 			})
+49: + 		);
+50: + 	}
+51: +
+52: + 	async uploadPublicCertificate(
+53: + 		request: UploadPublicCertificateRequest
+54: + 	): Promise<void> {
+55: + 		const headers = new HttpHeaders({
+56: + 			'Content-Type': 'text/plain; charset=utf-8',
+57: + 		});
+58: +
+59: + 		await firstValueFrom(
+60: + 			this.http.put<void>(
+61: + 				apiURL + `/orcs/user/public-certificate`,
+62: + 				request.certificatePem,
+63: + 				{ headers }
+64: + 			)
+65: + 		);
+66: +
+67: + 		this.uiService.updated = true;
+68: + 	}
+69: +
+70: + 	async deletePublicCertificate(): Promise<void> {
+71: + 		await firstValueFrom(
+72: + 			this.http.delete<void>(apiURL + `/orcs/user/public-certificate`)
+73: + 		);
+74: +
+75: + 		this.uiService.updated = true;
+76: + 	}
+77: + }
+
+--- FILE: web/apps/osee/src/app/certificate-management/types/user-public-certificate-types.ts ---
+[1] @@ -0,0 +1,24 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: +
+14: + export type CertificateSummary = {
+15: + 	readonly subjectCn: string | null;
+16: + 	readonly notBefore: Date;
+17: + 	readonly notAfter: Date;
+18: + 	readonly isDateValidNow: boolean;
+19: + };
+20: +
+21: + export type CertificateProcessResult = {
+22: + 	readonly pem: string;
+23: + 	readonly summary: CertificateSummary;
+24: + };
+
+--- FILE: web/apps/osee/src/app/layout/lib/navigation/top-level-navigation/top-level-navigation-structure.ts ---
+[358] @@ -358,6 +358,33 @@ export const navigationStructure: navigationElement[] = [
+358:   			},
+359:   		],
+360:   	},
+361: + 	{
+362: + 		label: 'Profile',
+363: + 		cypressLabel: '',
+364: + 		pageTitle: 'Profile',
+365: + 		isDropdown: true,
+366: + 		isDropdownOpen: false,
+367: + 		requiredRoles: [],
+368: + 		routerLink: '',
+369: + 		icon: 'account_box',
+370: + 		description: '',
+371: + 		usesBranch: false,
+372: + 		children: [
+373: + 			{
+374: + 				label: 'Certificate Management',
+375: + 				cypressLabel: '',
+376: + 				pageTitle: 'Profile - Certificate Management',
+377: + 				isDropdown: false,
+378: + 				isDropdownOpen: false,
+379: + 				requiredRoles: [],
+380: + 				routerLink: '/certificate-management',
+381: + 				icon: 'security',
+382: + 				description: '',
+383: + 				usesBranch: false,
+384: + 				children: [],
+385: + 			},
+386: + 		],
+387: + 	},
+388:   	{
+389:   		label: 'AcTra',
+390:   		cypressLabel: '',
+[400] @@ -373,7 +400,7 @@ export const navigationStructure: navigationElement[] = [
+400:   			{
+401:   				label: 'World',
+402:   				cypressLabel: '',
+     - 				pageTitle: 'World',
+403: + 				pageTitle: 'AcTra - World',
+404:   				isDropdown: false,
+405:   				isDropdownOpen: false,
+406:   				requiredRoles: [],
+407:   .../META-INF/MANIFEST.MF                      |  17 +-
+408:   .../tests/orcs/rest/OrcsRestTestSuite.java    |   3 +-
+409:   .../tests/orcs/rest/UserEndpointTest.java     | 183 ++++++++++++++++++
+410:   3 files changed, 198 insertions(+), 5 deletions(-)
+411:   create mode 100644 plugins/org.eclipse.osee.ats.ide.integration.tests/src/org/eclipse/osee/ats/ide/integration/tests/orcs/rest/UserEndpointTest.java
+
+--- FILE: plugins/org.eclipse.osee.ats.ide.integration.tests/META-INF/MANIFEST.MF ---
+[22] @@ -22,7 +22,9 @@ Require-Bundle: org.junit,
+22:    org.eclipse.osee.ats.ide,
+23:    org.eclipse.jgit,
+24:    org.eclipse.emf.ecore,
+     -  javax.activation
+25: +  javax.activation,
+26: +  bcprov,
+27: +  bcpkix
+28:   Import-Package: com.fasterxml.jackson.annotation,
+29:    com.fasterxml.jackson.core,
+30:    com.fasterxml.jackson.core.type,
+[52] @@ -50,13 +52,19 @@ Import-Package: com.fasterxml.jackson.annotation,
+52:    javax.validation,
+53:    javax.ws.rs.client,
+54:    javax.ws.rs.core,
+55: +  javax.xml.ws,
+56:    org.apache.commons.lang3,
+57:    org.apache.cxf.jaxrs.ext.multipart,
+     -  javax.xml.ws,
+     -  org.osgi.service.http,
+58:    org.apache.cxf.jaxrs.impl,
+59:    org.apache.pdfbox.pdmodel,
+60:    org.apache.pdfbox.text,
+61: +  org.bouncycastle,
+62: +  org.bouncycastle.asn1.x500,
+63: +  org.bouncycastle.asn1.x509,
+64: +  org.bouncycastle.cert,
+65: +  org.bouncycastle.cert.jcajce,
+66: +  org.bouncycastle.operator,
+67: +  org.bouncycastle.operator.jcajce,
+68:    org.eclipse.emf.common.util,
+69:    org.eclipse.emf.ecore,
+70:    org.eclipse.emf.ecore.resource.impl,
+[287] @@ -279,7 +287,8 @@ Import-Package: com.fasterxml.jackson.annotation,
+287:    org.jsoup.nodes,
+288:    org.jsoup.select,
+289:    org.osgi.framework,
+     -  org.osgi.service.event
+290: +  org.osgi.service.event,
+291: +  org.osgi.service.http
+292:   Service-Component: OSGI-INF/*.xml
+293:   Export-Package: org.eclipse.osee.ats.ide.integration.tests.ats.workdef,
+294:    org.eclipse.osee.ats.ide.integration.tests.skynet.core.utils,
+
+--- FILE: plugins/org.eclipse.osee.ats.ide.integration.tests/src/org/eclipse/osee/ats/ide/integration/tests/orcs/rest/OrcsRestTestSuite.java ---
+[36] @@ -36,7 +36,8 @@
+36:      ArtifactModificationTest.class,
+37:      RelationEndpointTest.class,
+38:      ApiKeyEndpointTest.class,
+     -    ClientEndpointTest.class,})
+39: +    ClientEndpointTest.class,
+40: +    UserEndpointTest.class,})
+41:
+42:   public class OrcsRestTestSuite {
+43:      // Test Suite
+
+--- FILE: plugins/org.eclipse.osee.ats.ide.integration.tests/src/org/eclipse/osee/ats/ide/integration/tests/orcs/rest/UserEndpointTest.java ---
+[1] @@ -0,0 +1,183 @@
+1: + /*********************************************************************
+2: +  * Copyright (c) 2026 Boeing
+3: +  *
+4: +  * This program and the accompanying materials are made
+5: +  * available under the terms of the Eclipse Public License 2.0
+6: +  * which is available at https://www.eclipse.org/legal/epl-2.0/
+7: +  *
+8: +  * SPDX-License-Identifier: EPL-2.0
+9: +  *
+10: +  * Contributors:
+11: +  *     Boeing - initial API and implementation
+12: +  **********************************************************************/
+13: +
+14: + package org.eclipse.osee.ats.ide.integration.tests.orcs.rest;
+15: +
+16: + import static org.junit.Assert.assertEquals;
+17: + import static org.junit.Assert.assertNotNull;
+18: + import static org.junit.Assert.assertTrue;
+19: + import java.io.ByteArrayInputStream;
+20: + import java.math.BigInteger;
+21: + import java.nio.charset.StandardCharsets;
+22: + import java.security.KeyPair;
+23: + import java.security.KeyPairGenerator;
+24: + import java.security.cert.CertificateFactory;
+25: + import java.security.cert.X509Certificate;
+26: + import java.time.Instant;
+27: + import java.time.temporal.ChronoUnit;
+28: + import java.util.Base64;
+29: + import java.util.Date;
+30: + import javax.ws.rs.core.HttpHeaders;
+31: + import javax.ws.rs.core.MediaType;
+32: + import javax.ws.rs.core.Response;
+33: + import org.bouncycastle.asn1.x500.X500Name;
+34: + import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
+35: + import org.bouncycastle.asn1.x509.Extension;
+36: + import org.bouncycastle.asn1.x509.KeyPurposeId;
+37: + import org.bouncycastle.asn1.x509.KeyUsage;
+38: + import org.bouncycastle.cert.X509CertificateHolder;
+39: + import org.bouncycastle.cert.X509v3CertificateBuilder;
+40: + import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+41: + import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+42: + import org.bouncycastle.operator.ContentSigner;
+43: + import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+44: + import org.eclipse.osee.ats.ide.util.ServiceUtil;
+45: + import org.eclipse.osee.client.test.framework.NotProductionDataStoreRule;
+46: + import org.eclipse.osee.orcs.rest.model.UserEndpoint;
+47: + import org.junit.BeforeClass;
+48: + import org.junit.Rule;
+49: + import org.junit.Test;
+50: +
+51: + public class UserEndpointTest {
+52: +
+53: +    @Rule
+54: +    public NotProductionDataStoreRule notProduction = new NotProductionDataStoreRule();
+55: +
+56: +    private static UserEndpoint userEndpoint;
+57: +
+58: +    @BeforeClass
+59: +    public static void testSetup() {
+60: +       userEndpoint = ServiceUtil.getOseeClient().getOrcsUserEndpoint();
+61: +    }
+62: +
+63: +    @Test
+64: +    public void uploadGetDeletePublicCertificate_happyPath() throws Exception {
+65: +       Response initial = userEndpoint.getPublicCertificate();
+66: +       assertNotNull(initial);
+67: +       assertEquals(Response.Status.NO_CONTENT.getStatusCode(), initial.getStatus());
+68: +
+69: +       String pem = generateEmailCertificatePem(validityFromNowMinutes(-1), validityFromNowDays(365));
+70: +
+71: +       userEndpoint.uploadPublicCertificate(pem);
+72: +
+73: +       Response get = userEndpoint.getPublicCertificate();
+74: +       assertNotNull(get);
+75: +       assertEquals(Response.Status.OK.getStatusCode(), get.getStatus());
+76: +       assertEquals(MediaType.TEXT_PLAIN, get.getMediaType().toString());
+77: +
+78: +       String returnedPem;
+79: +       try {
+80: +          returnedPem = get.readEntity(String.class);
+81: +       } finally {
+82: +          get.close();
+83: +       }
+84: +
+85: +       assertNotNull(returnedPem);
+86: +       assertTrue(returnedPem.contains("-----BEGIN CERTIFICATE-----"));
+87: +       assertTrue(returnedPem.contains("-----END CERTIFICATE-----"));
+88: +
+89: +       String contentDisposition = get.getHeaderString(HttpHeaders.CONTENT_DISPOSITION);
+90: +       assertNotNull(contentDisposition);
+91: +       assertTrue(contentDisposition.contains("attachment"));
+92: +       assertTrue(contentDisposition.contains("public-cert.pem"));
+93: +
+94: +       userEndpoint.deletePublicCertificate();
+95: +
+96: +       Response afterDelete = userEndpoint.getPublicCertificate();
+97: +       assertNotNull(afterDelete);
+98: +       assertEquals(Response.Status.NO_CONTENT.getStatusCode(), afterDelete.getStatus());
+99: +    }
+100: +
+101: +    @Test
+102: +    public void uploadPublicCertificate_rejectsInvalidPem() {
+103: +       assertUploadThrows("not a certificate");
+104: +    }
+105: +
+106: +    @Test
+107: +    public void uploadPublicCertificate_rejectsExpiredCertificate() throws Exception {
+108: +       Date notBefore = validityFromNowDays(-10);
+109: +       Date notAfter = validityFromNowDays(-1);
+110: +
+111: +       String pem = generateEmailCertificatePem(notBefore, notAfter);
+112: +       assertUploadThrows(pem);
+113: +    }
+114: +
+115: +    @Test
+116: +    public void uploadPublicCertificate_rejectsNotYetValidCertificate() throws Exception {
+117: +       Date notBefore = validityFromNowDays(1);
+118: +       Date notAfter = validityFromNowDays(365);
+119: +
+120: +       String pem = generateEmailCertificatePem(notBefore, notAfter);
+121: +       assertUploadThrows(pem);
+122: +    }
+123: +
+124: +    private static void assertUploadThrows(String pem) {
+125: +       boolean threw = false;
+126: +       try {
+127: +          userEndpoint.uploadPublicCertificate(pem);
+128: +       } catch (RuntimeException ex) {
+129: +          threw = true;
+130: +       }
+131: +       assertTrue("Expected uploadPublicCertificate to throw", threw);
+132: +    }
+133: +
+134: +    private static Date validityFromNowDays(long days) {
+135: +       return Date.from(Instant.now().plus(days, ChronoUnit.DAYS));
+136: +    }
+137: +
+138: +    private static Date validityFromNowMinutes(long minutes) {
+139: +       return Date.from(Instant.now().plus(minutes, ChronoUnit.MINUTES));
+140: +    }
+141: +
+142: +    private static String generateEmailCertificatePem(Date notBefore, Date notAfter) throws Exception {
+143: +       KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+144: +       kpg.initialize(2048);
+145: +       KeyPair keyPair = kpg.generateKeyPair();
+146: +
+147: +       X500Name dn = new X500Name("CN=OSEE Test Email Cert");
+148: +
+149: +       BigInteger serial = BigInteger.valueOf(System.currentTimeMillis());
+150: +
+151: +       X509v3CertificateBuilder builder =
+152: +          new JcaX509v3CertificateBuilder(dn, serial, notBefore, notAfter, dn, keyPair.getPublic());
+153: +
+154: +       builder.addExtension(Extension.keyUsage, true,
+155: +          new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment));
+156: +
+157: +       builder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(KeyPurposeId.id_kp_emailProtection));
+158: +
+159: +       ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(keyPair.getPrivate());
+160: +
+161: +       X509CertificateHolder holder = builder.build(signer);
+162: +
+163: +       X509Certificate cert = new JcaX509CertificateConverter().getCertificate(holder);
+164: +
+165: +       return toPem(cert);
+166: +    }
+167: +
+168: +    private static String toPem(X509Certificate cert) throws Exception {
+169: +       byte[] der = cert.getEncoded();
+170: +       String base64 = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.US_ASCII)).encodeToString(der);
+171: +       return "-----BEGIN CERTIFICATE-----\n" + base64 + "\n-----END CERTIFICATE-----\n";
+172: +    }
+173: +
+174: +    @SuppressWarnings("unused")
+175: +    private static X509Certificate parsePem(String pem) throws Exception {
+176: +       String cleaned =
+177: +          pem.replace("-----BEGIN CERTIFICATE-----", "").replace("-----END CERTIFICATE-----", "").replaceAll("\\s+", "");
+178: +
+179: +       byte[] der = Base64.getDecoder().decode(cleaned);
+180: +       CertificateFactory cf = CertificateFactory.getInstance("X.509");
+181: +       return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(der));
+182: +    }
+183: + }
+184:   .../osee/orcs/rest/model/UserEndpoint.java    |  3 +-
+185:   ...blic-certificate-management.component.html | 38 ++++++++----
+186:   ...public-certificate-management.component.ts | 60 ++++++++++++-------
+187:   3 files changed, 66 insertions(+), 35 deletions(-)
+
+--- FILE: plugins/org.eclipse.osee.orcs.rest.model/src/org/eclipse/osee/orcs/rest/model/UserEndpoint.java ---
+[33] @@ -33,8 +33,7 @@ public interface UserEndpoint {
+33:      public UserTokens get();
+34:
+35:      /**
+     -     * Upload or replace the user's public certificate. Only PEM format certificates accepted because of key-value table
+     -     * column types.
+36: +     * Upload or replace the user's public certificate. Only PEM format certificates accepted.
+37:       */
+38:      @PUT
+39:      @Path("public-certificate")
+
+--- FILE: web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.html ---
+[83] @@ -83,27 +83,28 @@
+83:   					class="tw-mt-2 tw-flex tw-items-center tw-justify-end tw-gap-2">
+84:   					<span
+85:   						class="tw-inline-flex"
+     - 						[matTooltip]="disableDownloadReason() ?? ''"
+     - 						[matTooltipDisabled]="!disableDownloadReason()">
+86: + 						[matTooltip]="disableExistingActionReason() ?? ''"
+87: + 						[matTooltipDisabled]="!disableExistingActionReason()">
+88:   						<button
+89:   							mat-stroked-button
+90:   							type="button"
+     - 							[disabled]="!!disableDownloadReason()"
+     - 							(click)="onDownloadExisting()">
+     - 							Download
+91: + 							class="tw-text-osee-red-8"
+92: + 							[disabled]="!!disableExistingActionReason()"
+93: + 							(click)="onDeleteExisting()">
+94: + 							Delete
+95:   						</button>
+96:   					</span>
+97:
+98:   					<span
+99:   						class="tw-inline-flex"
+     - 						[matTooltip]="disableDeleteReason() ?? ''"
+     - 						[matTooltipDisabled]="!disableDeleteReason()">
+100: + 						[matTooltip]="disableExistingActionReason() ?? ''"
+101: + 						[matTooltipDisabled]="!disableExistingActionReason()">
+102:   						<button
+103:   							mat-stroked-button
+104:   							type="button"
+     - 							[disabled]="!!disableDeleteReason()"
+     - 							(click)="onDeleteExisting()">
+     - 							Delete
+105: + 							[disabled]="!!disableExistingActionReason()"
+106: + 							(click)="onDownloadExisting()">
+107: + 							Download
+108:   						</button>
+109:   					</span>
+110:   				</div>
+[156] @@ -155,14 +156,27 @@
+156:   				</div>
+157:
+158:   				<div class="tw-flex tw-items-center tw-justify-end tw-gap-2">
+159: + 					<span
+160: + 						class="tw-inline-flex"
+161: + 						[matTooltip]="disableClearSelectedReason() ?? ''"
+162: + 						[matTooltipDisabled]="!disableClearSelectedReason()">
+163: + 						<button
+164: + 							mat-stroked-button
+165: + 							type="button"
+166: + 							class="tw-text-osee-red-8"
+167: + 							[disabled]="!!disableClearSelectedReason()"
+168: + 							(click)="onClearSelectedCertificate()">
+169: + 							Clear
+170: + 						</button>
+171: + 					</span>
+172: +
+173:   					<span
+174:   						class="tw-inline-flex"
+175:   						[matTooltip]="disableReplaceReason() ?? ''"
+176:   						[matTooltipDisabled]="!disableReplaceReason()">
+177:   						<button
+     - 							mat-raised-button
+178: + 							mat-stroked-button
+179:   							type="button"
+     - 							class="tw-rounded tw-bg-osee-blue-6 tw-text-osee-neutral-100 hover:tw-bg-osee-blue-7 disabled:tw-cursor-not-allowed disabled:tw-bg-osee-neutral-25 disabled:tw-text-osee-neutral-60"
+180:   							[disabled]="!!disableReplaceReason()"
+181:   							(click)="onReplace()">
+182:   							Replace
+
+--- FILE: web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.ts ---
+[52] @@ -52,7 +52,9 @@ import {
+52:   	templateUrl: './user-public-certificate-management.component.html',
+53:   })
+54:   export class UserPublicCertificateManagementComponent {
+     - 	private readonly service = inject(UserPublicCertificateManagementService);
+55: + 	private readonly certService = inject(
+56: + 		UserPublicCertificateManagementService
+57: + 	);
+58:   	private readonly loadingService = inject(HttpLoadingService);
+59:   	protected readonly uiService = inject(UiService);
+60:
+[68] @@ -66,7 +68,7 @@ export class UserPublicCertificateManagementComponent {
+68:   	});
+69:
+70:   	protected readonly existingPemResource =
+     - 		this.service.getPublicCertificateResource();
+71: + 		this.certService.getPublicCertificateResource();
+72:
+73:   	protected readonly existingPem = computed<string | null>(() => {
+74:   		const pem = this.existingPemResource.value();
+[103] @@ -101,21 +103,16 @@ export class UserPublicCertificateManagementComponent {
+103:   		return typeof pem === 'string' && pem.trim().length > 0;
+104:   	});
+105:
+     - 	protected readonly disableDownloadReason = computed<string | null>(() => {
+     - 		if (this.loadingGlobalBusy()) return 'A request is in progress.';
+     - 		if (this.existingPemResource.isLoading())
+     - 			return 'Certificate is still loading.';
+     - 		if (!this.existingPem()) return 'No certificate is currently on file.';
+     - 		return null;
+     - 	});
+     -
+     - 	protected readonly disableDeleteReason = computed<string | null>(() => {
+     - 		if (this.loadingGlobalBusy()) return 'A request is in progress.';
+     - 		if (this.existingPemResource.isLoading())
+     - 			return 'Certificate is still loading.';
+     - 		if (!this.existingPem()) return 'No certificate is currently on file.';
+     - 		return null;
+     - 	});
+106: + 	protected readonly disableExistingActionReason = computed<string | null>(
+107: + 		() => {
+108: + 			if (this.loadingGlobalBusy()) return 'A request is in progress.';
+109: + 			if (this.existingPemResource.isLoading())
+110: + 				return 'Certificate is still loading.';
+111: + 			if (!this.existingPem())
+112: + 				return 'No certificate is currently on file.';
+113: + 			return null;
+114: + 		}
+115: + 	);
+116:
+117:   	protected readonly disableReplaceReason = computed<string | null>(() => {
+118:   		if (this.loadingGlobalBusy()) return 'A request is in progress.';
+[121] @@ -124,7 +121,7 @@ export class UserPublicCertificateManagementComponent {
+121:   		if (!this.selectedFile())
+122:   			return 'Select a certificate file to replace the current one.';
+123:   		if (!this.candidatePem())
+     - 			return 'The selected file isn’t a valid X.509 certificate.';
+124: + 			return 'The selected file is not a valid X.509 certificate.';
+125:   		if (
+126:   			this.candidateSummary() &&
+127:   			!this.candidateSummary()!.isDateValidNow
+[131] @@ -134,6 +131,17 @@ export class UserPublicCertificateManagementComponent {
+131:   		return null;
+132:   	});
+133:
+134: + 	protected readonly disableClearSelectedReason = computed<string | null>(
+135: + 		() => {
+136: + 			if (this.loadingGlobalBusy()) return 'A request is in progress.';
+137: + 			if (this.isProcessingCandidate())
+138: + 				return 'Selected certificate is still being processed.';
+139: + 			if (!this.selectedFile())
+140: + 				return 'No selected certificate to clear.';
+141: + 			return null;
+142: + 		}
+143: + 	);
+144: +
+145:   	protected async onFilesSelected(files: File[]): Promise<void> {
+146:   		this.uiService.ErrorText = '';
+147:
+[169] @@ -161,11 +169,18 @@ export class UserPublicCertificateManagementComponent {
+169:   		}
+170:   	}
+171:
+172: + 	protected onClearSelectedCertificate(): void {
+173: + 		this.uiService.ErrorText = '';
+174: + 		this.selectedFile.set(null);
+175: + 		this.candidatePem.set(null);
+176: + 		this.candidateSummary.set(null);
+177: + 	}
+178: +
+179:   	protected async onDownloadExisting(): Promise<void> {
+180:   		this.uiService.ErrorText = '';
+181:
+182:   		try {
+     - 			const response = await this.service.downloadPublicCertificate();
+183: + 			const response = await this.certService.downloadPublicCertificate();
+184:   			const pem = this.normalizePem(response.body ?? '');
+185:   			const fileName =
+186:   				this.tryParseFileNameFromContentDisposition(
+[199] @@ -184,10 +199,11 @@ export class UserPublicCertificateManagementComponent {
+199:
+200:   	protected async onDeleteExisting(): Promise<void> {
+201:   		if (!this.existingPem()) return;
+202: + 		if (!confirm(`Delete current certificate?`)) return;
+203:
+204:   		this.uiService.ErrorText = '';
+205:   		try {
+     - 			await this.service.deletePublicCertificate();
+206: + 			await this.certService.deletePublicCertificate();
+207:   		} catch (error: unknown) {
+208:   			this.uiService.ErrorText = this.toErrorMessage(error);
+209:   		}
+[220] @@ -204,7 +220,9 @@ export class UserPublicCertificateManagementComponent {
+220:   		}
+221:
+222:   		try {
+     - 			await this.service.uploadPublicCertificate({ certificatePem: pem });
+223: + 			await this.certService.uploadPublicCertificate({
+224: + 				certificatePem: pem,
+225: + 			});
+226:
+227:   			this.selectedFile.set(null);
+228:   			this.candidatePem.set(null);
+229:   ...-public-certificate-management.component.html | 16 ++++++++--------
+230:   ...er-public-certificate-management.component.ts |  8 ++++----
+231:   2 files changed, 12 insertions(+), 12 deletions(-)
+
+--- FILE: web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.html ---
+[24] @@ -24,7 +24,7 @@
+24:   				</div>
+25:
+26:   				<div class="tw-text-sm tw-text-osee-neutral-60">
+     - 					View, download, delete, or replace your public email
+27: + 					View, download, delete, or update your public email
+28:   					certificate.
+29:   				</div>
+30:   			</div>
+[118] @@ -118,7 +118,7 @@
+118:
+119:   	<mat-card class="tw-p-4">
+120:   		<div class="tw-flex tw-flex-col tw-gap-3">
+     - 			<div class="tw-text-sm tw-font-medium">Replace Certificate</div>
+121: + 			<div class="tw-text-sm tw-font-medium">Update Certificate</div>
+122:
+123:   			<osee-drag-and-drop-upload
+124:   				accept=".pem,.crt,.cer,.der"
+[172] @@ -172,20 +172,20 @@
+172:
+173:   					<span
+174:   						class="tw-inline-flex"
+     - 						[matTooltip]="disableReplaceReason() ?? ''"
+     - 						[matTooltipDisabled]="!disableReplaceReason()">
+175: + 						[matTooltip]="disableUpdateReason() ?? ''"
+176: + 						[matTooltipDisabled]="!disableUpdateReason()">
+177:   						<button
+178:   							mat-stroked-button
+179:   							type="button"
+     - 							[disabled]="!!disableReplaceReason()"
+     - 							(click)="onReplace()">
+     - 							Replace
+180: + 							[disabled]="!!disableUpdateReason()"
+181: + 							(click)="onUpdate()">
+182: + 							Update
+183:   						</button>
+184:   					</span>
+185:   				</div>
+186:   			} @else {
+187:   				<div class="tw-text-sm tw-text-osee-neutral-60">
+     - 					Select a certificate to replace the current one.
+188: + 					Select a certificate to update the current one.
+189:   				</div>
+190:   			}
+191:   		</div>
+
+--- FILE: web/apps/osee/src/app/certificate-management/components/user-public-certificate-management/user-public-certificate-management.component.ts ---
+[114] @@ -114,12 +114,12 @@ export class UserPublicCertificateManagementComponent {
+114:   		}
+115:   	);
+116:
+     - 	protected readonly disableReplaceReason = computed<string | null>(() => {
+117: + 	protected readonly disableUpdateReason = computed<string | null>(() => {
+118:   		if (this.loadingGlobalBusy()) return 'A request is in progress.';
+119:   		if (this.isProcessingCandidate())
+120:   			return 'Selected certificate is still being processed.';
+121:   		if (!this.selectedFile())
+     - 			return 'Select a certificate file to replace the current one.';
+122: + 			return 'Select a certificate file to update the current one.';
+123:   		if (!this.candidatePem())
+124:   			return 'The selected file is not a valid X.509 certificate.';
+125:   		if (
+[209] @@ -209,13 +209,13 @@ export class UserPublicCertificateManagementComponent {
+209:   		}
+210:   	}
+211:
+     - 	protected async onReplace(): Promise<void> {
+212: + 	protected async onUpdate(): Promise<void> {
+213:   		this.uiService.ErrorText = '';
+214:
+215:   		const pem = this.candidatePem();
+216:   		if (!pem) {
+217:   			this.uiService.ErrorText =
+     - 				'No certificate is ready to replace the current one.';
+218: + 				'No certificate is ready to update the current one.';
+219:   			return;
+220:   		}
+221:
