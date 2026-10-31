@@ -196,16 +196,16 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
   <div id="banner"><h2 id="bannerH"></h2><p id="bannerP"></p></div>
   <div id="pops"></div>
 
-  <div class="pad" id="padL" aria-label="Tilt left">◀</div>
-  <div class="pad" id="padR" aria-label="Tilt right">▶</div>
+  <div class="pad" id="padL" aria-label="Left jet">L</div>
+  <div class="pad" id="padR" aria-label="Right jet">R</div>
 
   <section class="overlay" id="titleScreen">
     <div class="card">
       <h1 class="title">Sky&shy;bucket</h1>
       <p class="tag">Fly a twin-jet lift platform with an open bucket on its back. The vents out in the badlands spit up ore. Catch it, keep it from sloshing out, and set down on the home pad to cash it in.</p>
       <dl class="controls" id="controlsList">
-        <dt><kbd>◀</kbd> <kbd>A</kbd></dt><dd id="ctlLeft">Tilt left (fires the right jet)</dd>
-        <dt><kbd>▶</kbd> <kbd>D</kbd></dt><dd id="ctlRight">Tilt right (fires the left jet)</dd>
+        <dt><kbd>◀</kbd> <kbd>A</kbd></dt><dd id="ctlLeft">Left jet (tilts you right)</dd>
+        <dt><kbd>▶</kbd> <kbd>D</kbd></dt><dd id="ctlRight">Right jet (tilts you left)</dd>
         <dt><kbd>▲</kbd> <kbd>W</kbd> <kbd>Space</kbd></dt><dd>Both jets: lift</dd>
         <dt><kbd>G</kbd> <kbd>C</kbd> <kbd>M</kbd> <kbd>P</kbd></dt><dd>Gyro assist · control scheme · sound · pause</dd>
       </dl>
@@ -217,7 +217,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
       <p class="fine">Land gently on the pad with the bucket full to deliver, refuel and patch the hull. Cargo left on the ground crumbles after a few seconds. Farther vents throw richer ore. From shift 2 the wind picks up.</p>
       <div class="row">
         <button id="startBtn">Launch</button>
-        <button class="ghost" id="schemeBtn">Controls: Steer</button>
+        <button class="ghost" id="schemeBtn">Controls: Direct</button>
         <button class="ghost" id="gyroBtn">Gyro: On</button>
         <button class="ghost" id="soundBtn">Sound: On</button>
       </div>
@@ -403,7 +403,7 @@ function resetShip() {
 // ======================================================================
 const game = {
   state: 'title', level: 1, delivered: 0, lives: 3, best: store.get('best', 0), time: 0,
-  scheme: store.get('scheme', 'steer'), gyro: store.get('gyro', true), sound: store.get('sound', true),
+  scheme: store.get('controls', 'direct'), gyro: store.get('gyro', true), sound: store.get('sound', true),
   shake: 0, wind: 0,
 };
 const cargo = [];
@@ -1133,12 +1133,14 @@ function toTitle() {
   renderBest();
 }
 function setScheme(s) {
-  game.scheme = s; store.set('scheme', s);
+  game.scheme = s; store.set('controls', s);
   $('schemeBtn').textContent = 'Controls: ' + (s === 'steer' ? 'Steer' : 'Direct');
   $('ctlLeft').textContent = s === 'steer' ? 'Tilt left (fires the right jet)' : 'Left jet (tilts you right)';
   $('ctlRight').textContent = s === 'steer' ? 'Tilt right (fires the left jet)' : 'Right jet (tilts you left)';
   $('padL').textContent = s === 'steer' ? '◀' : 'L';
+  $('padL').setAttribute('aria-label', s === 'steer' ? 'Tilt left' : 'Left jet');
   $('padR').textContent = s === 'steer' ? '▶' : 'R';
+  $('padR').setAttribute('aria-label', s === 'steer' ? 'Tilt right' : 'Right jet');
   if (game.state === 'play') banner('', s === 'steer' ? 'Controls: steer — arrows lean the platform' : 'Controls: direct — each arrow fires its own jet', 1.6);
 }
 function setGyro(on) {

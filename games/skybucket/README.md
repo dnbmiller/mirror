@@ -15,13 +15,13 @@ cd games/skybucket && python3 -m http.server 8000
 
 ## Controls
 
-| Key | Steer scheme (default) | Direct scheme |
+| Key | Direct scheme (default) | Steer scheme |
 | --- | --- | --- |
-| `←` / `A` | Lean left (fires the right jet) | Left jet |
-| `→` / `D` | Lean right (fires the left jet) | Right jet |
+| `←` / `A` | Left jet (tilts you right) | Lean left (fires the right jet) |
+| `→` / `D` | Right jet (tilts you left) | Lean right (fires the left jet) |
 | `↑` / `W` / `Space` | Both jets | Both jets |
 
-Holding both arrows also fires both jets. `G` toggles gyro assist, `C` swaps control scheme, `M` mutes, `P`/`Esc` pauses. On touch screens two thumb pads appear in the bottom corners.
+Holding both arrows also fires both jets. `G` toggles gyro assist, `C` swaps control scheme, `M` mutes, `P`/`Esc` pauses. On touch screens two thumb pads appear in the bottom corners, one per jet.
 
 ## Rules
 
