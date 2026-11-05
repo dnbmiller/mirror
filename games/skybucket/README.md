@@ -21,12 +21,13 @@ cd games/skybucket && python3 -m http.server 8000
 | `→` / `D` | Right jet (tilts you left) | Lean right (fires the left jet) |
 | `↑` / `W` / `Space` | Both jets | Both jets |
 
-Holding both arrows also fires both jets. `G` toggles gyro assist, `C` swaps control scheme, `M` mutes, `P`/`Esc` pauses. On touch screens two thumb pads appear in the bottom corners, one per jet.
+Holding both arrows also fires both jets. `-`/`=` or the mouse wheel zoom the camera (there's also a zoom slider on the title screen). `G` toggles gyro assist, `C` swaps control scheme, `M` mutes, `P`/`Esc` pauses. On touch screens two thumb pads appear in the bottom corners, one per jet.
 
 ## Rules
 
 - **Cargo:** gems (10 cr, 0.45 kg), crystals (25 cr, 1 kg) and gold (60 cr, 2.2 kg). Vents farther from home throw richer, heavier ore. A full bucket of gold weighs about as much as the jets can lift.
-- **Delivering:** set down gently on the home pad with both feet. Cargo in the bucket is unloaded into the silo, and the platform refuels and repairs while it sits there.
+- **Bucket readout:** a tag floats over the bucket with its value and piece count. It turns green once the load covers the rest of the shift's quota, and warns when the load gets heavy for the jets. The HUD shows the same value against the quota, plus the load in kg against what the jets can lift.
+- **Delivering:** set down gently on the home pad with both feet. Everything in the bucket is unloaded into the silo at once, and the platform refuels and repairs while it sits there.
 - **Damage:** hard landings and hull scrapes cost hull. The landing legs absorb more than the hull. At zero hull the platform is lost. Running dry away from the pad also costs a ship. You have three.
 - **Shifts:** meeting a quota starts the next shift. From shift 2 the wind picks up (watch the windsock and the HUD), pushing both the platform and loose cargo.
 - Ore left lying on the ground crumbles after about five seconds.

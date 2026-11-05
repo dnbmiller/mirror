@@ -85,6 +85,25 @@ body {
 #minimap { width: 300px; height: 64px; display: block; border-radius: 4px; }
 .stat { display: grid; gap: 4px; }
 .stat .num { font-size: 16px; }
+.bucket { gap: 5px; min-width: 250px; }
+.gauge { display: grid; grid-template-columns: 38px 1fr 92px; align-items: center; gap: 8px; }
+.gauge .num { text-align: right; font-size: 12px; }
+.glbl { font: 600 11px/1 var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+#valBar { background: var(--cyan); }
+#valWrap.ready i { background: var(--ok); }
+#loadWrap.heavy i { background: var(--hazard); }
+#bucketTag {
+  position: absolute; pointer-events: none; transform: translate(-50%, -100%);
+  display: grid; justify-items: center; gap: 2px; padding: 4px 9px; border-radius: 5px;
+  background: var(--ink); border: 1px solid var(--line); white-space: nowrap;
+}
+#bucketTag b { font-size: 14px; }
+#bucketTag span { font: 700 11px/1.1 var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+#bucketTag.ready { border-color: var(--ok); }
+#bucketTag.ready span { color: var(--ok); }
+#bucketTag.heavy span { color: var(--hazard); }
+.zoom { display: grid; grid-template-columns: auto minmax(0, 260px) auto; gap: 12px; align-items: center; justify-content: start; }
+.zoom input { width: 100%; accent-color: var(--amber); }
 #homeArrow { display: inline-block; transition: transform .1s linear; color: var(--amber); }
 .flash { animation: flash .35s ease-out; }
 @keyframes flash { from { box-shadow: inset 0 0 0 2px var(--hazard); } to { box-shadow: inset 0 0 0 2px transparent; } }
@@ -160,6 +179,8 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
   #minimap { width: 150px; height: 40px; }
   .touch .bl { margin-bottom: 120px; }
   .meter { grid-template-columns: 34px 1fr 28px; }
+  .bucket { min-width: 0; }
+  .gauge { grid-template-columns: 34px 90px 84px; }
 }
 @media (prefers-reduced-motion: reduce) {
   #banner, .bar i { transition: none; }
@@ -187,7 +208,11 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
       <canvas id="minimap" width="600" height="128"></canvas>
     </div>
     <div class="panel bl">
-      <div class="stat"><span class="lbl">Bucket</span><span class="num" id="bucketTxt">0 cr · 0.0 kg</span></div>
+      <div class="stat bucket">
+        <span class="lbl">Bucket · <span id="bucketCount">empty</span></span>
+        <div class="gauge"><span class="glbl">Value</span><div class="bar" id="valWrap"><i id="valBar"></i></div><span class="num" id="valTxt">0 / 150 cr</span></div>
+        <div class="gauge"><span class="glbl">Load</span><div class="bar" id="loadWrap"><i id="loadBar"></i></div><span class="num" id="loadTxt">0.0 / 9.3 kg</span></div>
+      </div>
       <div class="stat"><span class="lbl">Home</span><span class="num"><span id="homeArrow">➜</span> <span id="homeTxt">0 m</span></span></div>
       <div class="stat"><span class="lbl">Wind</span><span class="num" id="windTxt">calm</span></div>
     </div>
@@ -195,6 +220,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
   <div id="banner"><h2 id="bannerH"></h2><p id="bannerP"></p></div>
   <div id="pops"></div>
+  <div id="bucketTag" hidden><b class="num" id="tagVal"></b><span id="tagNote"></span></div>
 
   <div class="pad" id="padL" aria-label="Left jet">L</div>
   <div class="pad" id="padR" aria-label="Right jet">R</div>
@@ -207,6 +233,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         <dt><kbd>◀</kbd> <kbd>A</kbd></dt><dd id="ctlLeft">Left jet (tilts you right)</dd>
         <dt><kbd>▶</kbd> <kbd>D</kbd></dt><dd id="ctlRight">Right jet (tilts you left)</dd>
         <dt><kbd>▲</kbd> <kbd>W</kbd> <kbd>Space</kbd></dt><dd>Both jets: lift</dd>
+        <dt><kbd>−</kbd> <kbd>=</kbd> <kbd>Wheel</kbd></dt><dd>Zoom out / in</dd>
         <dt><kbd>G</kbd> <kbd>C</kbd> <kbd>M</kbd> <kbd>P</kbd></dt><dd>Gyro assist · control scheme · sound · pause</dd>
       </dl>
       <div class="legend">
@@ -214,7 +241,12 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         <span style="--c:#ff4fd8">Crystal 25 cr</span>
         <span style="--c:#ffc93a">Gold 60 cr · heavy</span>
       </div>
-      <p class="fine">Land gently on the pad with the bucket full to deliver, refuel and patch the hull. Cargo left on the ground crumbles after a few seconds. Farther vents throw richer ore. From shift 2 the wind picks up.</p>
+      <p class="fine">Watch the tag over the bucket: it turns green once the load covers the rest of the quota. Land gently on the pad to unload everything, refuel and patch the hull. Cargo left on the ground crumbles after a few seconds. Farther vents throw richer ore. From shift 2 the wind picks up.</p>
+      <div class="zoom">
+        <label class="lbl" for="zoomRange">Zoom</label>
+        <input type="range" id="zoomRange" min="0.5" max="1.6" step="0.05" value="1">
+        <span class="num" id="zoomTxt">100%</span>
+      </div>
       <div class="row">
         <button id="startBtn">Launch</button>
         <button class="ghost" id="schemeBtn">Controls: Direct</button>
@@ -372,6 +404,7 @@ const rayTmp = [];
 //  Ship definition (local frame; deck top at y = 0.15)
 // ======================================================================
 const SHIP_M = 8, SHIP_I = 42, THRUST = 85, BURN = 1.05, FUEL_MAX = 120, JET_X = 2.8;
+const MAX_PAYLOAD = 2 * THRUST / G - SHIP_M; // cargo mass at which both jets only just hover
 const HULL = [
   [-2.5, 0.15, 2.5, 0.15], [-2.5, -0.25, 2.5, -0.25],
   [-3.1, 0.45, -2.5, 0.45], [-3.1, -0.55, -2.5, -0.55], [-3.1, -0.55, -3.1, 0.45], [-2.5, -0.55, -2.5, 0.45],
@@ -391,11 +424,11 @@ const PR = 0.1, VR = 0.09;
 
 const S = {
   x: 0, y: 0.9, vx: 0, vy: 0, a: 0, w: 0, fuel: FUEL_MAX, hull: 100, jetL: 0, jetR: 0,
-  alive: true, footL: false, footR: false, landedT: 0, deadT: 0, strandT: 0, deliverT: 0, hitT: 0,
+  alive: true, footL: false, footR: false, footLT: -1, footRT: -1, landedT: 0, deadT: 0, strandT: 0, hitT: 0,
 };
 function resetShip() {
   Object.assign(S, { x: 0, y: 0.9, vx: 0, vy: 0, a: 0, w: 0, fuel: FUEL_MAX, hull: 100, jetL: 0, jetR: 0,
-    alive: true, landedT: 0, deadT: 0, strandT: 0, deliverT: 0 });
+    alive: true, landedT: 0, deadT: 0, strandT: 0, footLT: -1, footRT: -1 });
 }
 
 // ======================================================================
@@ -404,6 +437,7 @@ function resetShip() {
 const game = {
   state: 'title', level: 1, delivered: 0, lives: 3, best: store.get('best', 0), time: 0,
   scheme: store.get('controls', 'direct'), gyro: store.get('gyro', true), sound: store.get('sound', true),
+  zoom: clamp(+store.get('zoom', 1) || 1, 0.5, 1.6), bucketReady: false,
   shake: 0, wind: 0,
 };
 const cargo = [];
@@ -425,10 +459,16 @@ addEventListener('keydown', e => {
   else if (e.code === 'KeyG') setGyro(!game.gyro);
   else if (e.code === 'KeyC') setScheme(game.scheme === 'steer' ? 'direct' : 'steer');
   else if (e.code === 'KeyM') setSound(!game.sound);
+  else if (e.code === 'Minus' || e.code === 'NumpadSubtract') setZoom(game.zoom - 0.1, true);
+  else if (e.code === 'Equal' || e.code === 'NumpadAdd') setZoom(game.zoom + 0.1, true);
   else if ((e.code === 'Enter' || e.code === 'Space') && game.state === 'title') startGame();
   else if (e.code === 'Enter' && game.state === 'over') startGame();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
+addEventListener('wheel', e => {
+  if (game.state !== 'play' || !e.deltaY) return;
+  setZoom(game.zoom - Math.sign(e.deltaY) * 0.05, true);
+}, { passive: true });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; touch.L = touch.R = false; });
 
 function bindPad(el, side) {
@@ -544,7 +584,7 @@ function shipVsTerrain() {
   for (let it = 0; it < 3; it++) {
     for (let i = 0; i < n; i++) {
       const ct = C[i];
-      if (ct.foot === 1) S.footL = true; else if (ct.foot === 2) S.footR = true;
+      if (ct.foot === 1) { S.footL = true; S.footLT = game.time; } else if (ct.foot === 2) { S.footR = true; S.footRT = game.time; }
       const rx = ct.x - S.x, ry = ct.y - S.y, nx = ct.nx, ny = ct.ny;
       const vn = (S.vx - S.w * ry) * nx + (S.vy + S.w * rx) * ny;
       if (vn >= 0) continue;
@@ -1052,12 +1092,18 @@ function removeCargo(o) {
   o.mesh.material.dispose();
 }
 const delivering = [];
-function deliver(o) {
-  o.gone = true;
-  delivering.push({ mesh: o.mesh, from: o.mesh.position.clone(), t: 0, value: o.value, color: TYPES[o.t].color });
-  game.delivered += o.value;
-  popText('+' + o.value, o.x, o.y + 0.6);
-  audio.tone(660 + o.t * 220, 0.18, 'square', 0.06, 1.5);
+function unload(load) {
+  // everything in the bucket is banked at once; the flight to the silo is staggered for show
+  load.sort((a, b) => b.y - a.y);
+  let total = 0;
+  load.forEach((o, i) => {
+    o.gone = true;
+    total += o.value;
+    delivering.push({ mesh: o.mesh, from: o.mesh.position.clone(), t: -i * 0.08, color: TYPES[o.t].color });
+    if (i < 8) setTimeout(() => audio.tone(660 + o.t * 220 + i * 40, 0.16, 'square', 0.05, 1.5), i * 80);
+  });
+  game.delivered += total;
+  popText(`+${total} cr · ${load.length} ${load.length === 1 ? 'piece' : 'pieces'}`, S.x, S.y + 2.8);
   if (game.delivered >= quotaFor(game.level)) levelUp();
 }
 function levelUp() {
@@ -1153,6 +1199,14 @@ function setSound(on) {
   $('soundBtn').textContent = 'Sound: ' + (on ? 'On' : 'Off');
   audio.setMaster(on);
 }
+function setZoom(z, announce) {
+  game.zoom = clamp(Math.round(z * 20) / 20, 0.5, 1.6);
+  store.set('zoom', game.zoom);
+  $('zoomRange').value = game.zoom;
+  $('zoomTxt').textContent = Math.round(game.zoom * 100) + '%';
+  if (announce && game.state === 'play') banner('', `Zoom ${Math.round(game.zoom * 100)}%`, 0.9);
+}
+$('zoomRange').addEventListener('input', e => setZoom(+e.target.value));
 function renderBest() { $('bestTxt').textContent = game.best > 0 ? `Best delivery: ${game.best} cr` : ''; }
 function renderLives() {
   const el = $('lives'); el.innerHTML = '';
@@ -1180,7 +1234,7 @@ $('quitBtn').onclick = toTitle;
 $('schemeBtn').onclick = () => setScheme(game.scheme === 'steer' ? 'direct' : 'steer');
 $('gyroBtn').onclick = () => setGyro(!game.gyro);
 $('soundBtn').onclick = () => { audio.unlock(); setSound(!game.sound); };
-setScheme(game.scheme); setGyro(game.gyro); setSound(game.sound); renderBest();
+setScheme(game.scheme); setGyro(game.gyro); setSound(game.sound); setZoom(game.zoom); renderBest();
 
 function localToBucket(o) {
   const c = Math.cos(S.a), s = Math.sin(S.a), dx = o.x - S.x, dy = o.y - S.y;
@@ -1218,11 +1272,11 @@ function updateGame(dt) {
   });
 
   // cargo bookkeeping
-  let bucketValue = 0, bucketMass = 0;
+  let bucketValue = 0, bucketMass = 0, bucketCount = 0;
   for (const o of cargo) {
     if (o.gone) continue;
     o.inBucket = S.alive && localToBucket(o);
-    if (o.inBucket) { bucketValue += o.value; bucketMass += o.m; }
+    if (o.inBucket) { bucketValue += o.value; bucketMass += o.m; bucketCount++; }
     const speed = Math.hypot(o.vx, o.vy);
     if (o.ground && !o.inBucket && speed < 1.5) o.groundT += dt; else o.groundT = Math.max(0, o.groundT - dt * 2);
     if (o.groundT > 5 || o.y < -45 || o.x < WORLD.x0 - 20 || o.x > WORLD.x1 + 20) {
@@ -1241,18 +1295,16 @@ function updateGame(dt) {
 
   // landing on the pad: deliver, refuel, repair
   const speed = Math.hypot(S.vx, S.vy);
-  const onPad = S.alive && S.footL && S.footR && S.x > PAD.x0 && S.x < PAD.x1 && speed < 0.8 && Math.abs(wrapAngle(S.a)) < 0.3;
+  // feet count as planted for a moment after their last contact, so resting jitter doesn't reset the timer
+  const planted = game.time - S.footLT < 0.15 && game.time - S.footRT < 0.15;
+  const onPad = S.alive && planted && S.x > PAD.x0 && S.x < PAD.x1 && speed < 0.8 && Math.abs(wrapAngle(S.a)) < 0.3;
   if (onPad && game.state === 'play') {
     S.landedT += dt;
     S.fuel = Math.min(FUEL_MAX, S.fuel + 28 * dt);
     S.hull = Math.min(100, S.hull + 6 * dt);
-    if (S.landedT > 0.5) {
-      S.deliverT -= dt;
-      if (S.deliverT <= 0) {
-        let pick = null;
-        for (const o of cargo) if (!o.gone && o.inBucket && (!pick || o.y > pick.y)) pick = o;
-        if (pick) { deliver(pick); S.deliverT = 0.14; }
-      }
+    if (S.landedT > 0.35) {
+      const load = cargo.filter(o => !o.gone && o.inBucket);
+      if (load.length) { unload(load); bucketValue = 0; bucketMass = 0; bucketCount = 0; }
     }
   } else S.landedT = 0;
   padLightMat.emissive.setHex(onPad ? 0x7be38f : 0xffb547);
@@ -1274,7 +1326,7 @@ function updateGame(dt) {
   for (let i = delivering.length - 1; i >= 0; i--) {
     const d = delivering[i];
     d.t += dt * 1.4;
-    const t = Math.min(1, d.t), e = t * t * (3 - 2 * t);
+    const t = clamp(d.t, 0, 1), e = t * t * (3 - 2 * t);
     d.mesh.position.lerpVectors(d.from, SILO_MOUTH, e);
     d.mesh.position.y += Math.sin(t * Math.PI) * 5;
     d.mesh.scale.multiplyScalar(1 - dt * 0.8);
@@ -1282,7 +1334,7 @@ function updateGame(dt) {
     if (t >= 1) { scene.remove(d.mesh); d.mesh.material.dispose(); delivering.splice(i, 1); sparkBurst(SILO_MOUTH.x, SILO_MOUTH.y, d.color, 6, 3); }
   }
 
-  return { bucketValue, bucketMass, onPad };
+  return { bucketValue, bucketMass, bucketCount, onPad };
 }
 
 // ======================================================================
@@ -1332,10 +1384,10 @@ function updateVisuals(dt, info) {
   if (Math.abs(camTarget.x - S.x) > 40 || Math.abs(camTarget.y - S.y) > 30) {
     // respawn or teleport: cut instead of sweeping the camera through the rock
     camTarget.set(S.x, S.y + 1.6, 0);
-    camPos.set(S.x, S.y + 4.8, 32);
+    camPos.set(S.x, S.y + 4.8, 32 / game.zoom);
   }
   camTarget.lerp(tmpV.set(S.x + look, S.y + 1.6 + clamp(S.vy * 0.25, -3, 3), 0), 1 - Math.exp(-dt * 4));
-  const zoom = 32 + clamp(Math.hypot(S.vx, S.vy) * 0.45, 0, 9) + (game.state === 'title' ? -6 : 0);
+  const zoom = (32 + clamp(Math.hypot(S.vx, S.vy) * 0.45, 0, 9) + (game.state === 'title' ? -6 : 0)) / game.zoom;
   camPos.lerp(tmpV.set(camTarget.x, camTarget.y + 3.2, zoom), 1 - Math.exp(-dt * 3));
   game.shake = Math.max(0, game.shake - dt * 2.2);
   const sh = game.shake * game.shake * 0.8;
@@ -1356,6 +1408,7 @@ function updateVisuals(dt, info) {
     p.el.style.opacity = String(1 - p.t / 1.2);
     if (p.t > 1.2) { p.el.remove(); pops.splice(i, 1); }
   }
+  updateBucketTag(info);
   if (bannerTimer > 0) { bannerTimer -= dt; if (bannerTimer <= 0) $('banner').classList.remove('show'); }
 
   // HUD (throttled)
@@ -1378,6 +1431,29 @@ mmBase.width = mini.width; mmBase.height = mini.height;
   g.fillStyle = '#ffb547'; g.fillRect(tx(PAD.x0), ty(0) - 3, (PAD.x1 - PAD.x0) * MM.s, 4);
   MM.tx = tx; MM.ty = ty;
 }
+const tagEl = $('bucketTag');
+function updateBucketTag(info) {
+  const show = game.state === 'play' && S.alive && info.bucketCount > 0 && !info.onPad;
+  tagEl.hidden = !show;
+  const need = Math.max(0, quotaFor(game.level) - game.delivered);
+  const ready = show && info.bucketValue >= need;
+  if (ready && !game.bucketReady) {
+    banner('', 'That load covers the quota. Take it home.', 2.2);
+    [784, 1175].forEach((f, i) => setTimeout(() => audio.tone(f, 0.2, 'triangle', 0.1), i * 120));
+  }
+  game.bucketReady = ready;
+  if (!show) return;
+  const load = info.bucketMass / MAX_PAYLOAD;
+  tagEl.classList.toggle('ready', ready && load <= 1);
+  tagEl.classList.toggle('heavy', ready ? load > 1 : load > 0.85);
+  $('tagVal').textContent = `${info.bucketValue} cr · ${info.bucketCount}`;
+  $('tagNote').textContent = ready ? (load > 1 ? 'Enough · too heavy to lift' : 'Enough · fly home')
+    : load > 1 ? 'Overloaded' : load > 0.85 ? `Heavy · ${need - info.bucketValue} cr to go` : `${need - info.bucketValue} cr to go`;
+  tmpV.set(S.x - Math.sin(S.a) * 2.7, S.y + Math.cos(S.a) * 2.7, 0).project(camera);
+  tagEl.style.left = ((tmpV.x + 1) / 2 * innerWidth) + 'px';
+  tagEl.style.top = ((1 - tmpV.y) / 2 * innerHeight) + 'px';
+}
+
 function updateHud(info) {
   const f = S.fuel / FUEL_MAX, h = Math.max(0, S.hull) / 100;
   $('fuelBar').style.transform = `scaleX(${f})`; $('fuelTxt').textContent = Math.ceil(S.fuel);
@@ -1388,7 +1464,15 @@ function updateHud(info) {
   $('lvlTxt').textContent = game.level;
   $('quotaBar').style.transform = `scaleX(${clamp((game.delivered - q0) / (q - q0), 0, 1)})`;
   $('quotaTxt').textContent = `${game.delivered} / ${q} cr`;
-  $('bucketTxt').textContent = `${info.bucketValue} cr · ${info.bucketMass.toFixed(1)} kg`;
+  const need = Math.max(0, q - game.delivered);
+  $('bucketCount').textContent = info.bucketCount ? `${info.bucketCount} ${info.bucketCount === 1 ? 'piece' : 'pieces'}` : 'empty';
+  $('valBar').style.transform = `scaleX(${need ? Math.min(1, info.bucketValue / need) : 1})`;
+  $('valTxt').textContent = `${info.bucketValue} / ${need} cr`;
+  $('valWrap').classList.toggle('ready', info.bucketValue > 0 && info.bucketValue >= need);
+  const load = info.bucketMass / MAX_PAYLOAD;
+  $('loadBar').style.transform = `scaleX(${Math.min(1, load)})`;
+  $('loadTxt').textContent = `${info.bucketMass.toFixed(1)} / ${MAX_PAYLOAD.toFixed(1)} kg`;
+  $('loadWrap').classList.toggle('heavy', load > 0.85);
   const dx = 0 - S.x, dy = 1 - S.y, dist = Math.hypot(dx, dy);
   $('homeTxt').textContent = dist < 7 ? 'here' : `${Math.round(dist)} m`;
   $('homeArrow').style.transform = `rotate(${-Math.atan2(dy, dx)}rad)`;
@@ -1433,7 +1517,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  let info = { bucketValue: 0, bucketMass: 0, onPad: false };
+  let info = { bucketValue: 0, bucketMass: 0, bucketCount: 0, onPad: false };
   if (game.state !== 'paused') {
     acc += dt;
     let n = 0;
