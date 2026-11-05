@@ -74,6 +74,7 @@ body {
 .bar i { display: block; height: 100%; width: 100%; background: var(--amber); transform-origin: left; transition: background-color .2s; }
 #hullBar { background: var(--ok); }
 .bar.warn i { background: var(--hazard) !important; }
+#windMini { display: none; }
 .lvl { font: 800 20px/1 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; }
 .lvl span { color: var(--amber); }
 .quota { margin-top: 6px; }
@@ -174,13 +175,29 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
   #hud { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto 1fr auto; }
   .tl { grid-column: 1; grid-row: 1; min-width: 0; width: 100%; }
   .tr { grid-column: 2; grid-row: 1; }
-  .tc { grid-column: 1 / 3; grid-row: 2; min-width: 0; width: 100%; padding: 6px 10px; }
-  .bl, .touch .bl { grid-column: 1 / 3; grid-row: 4; justify-self: center; gap: 12px; }
+  /* one combined status bar: shift in the left third, bucket in the right two-thirds */
+  #hud { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: auto auto 1fr; column-gap: 0; row-gap: 8px; }
+  .tl { grid-column: 1 / 4; }
+  .tr { grid-column: 4 / 7; margin-left: 8px; }
+  .tc { grid-column: 1 / 3; grid-row: 2; min-width: 0; width: 100%; padding: 5px 8px; text-align: left;
+    border-radius: 6px 0 0 6px; border-right-color: var(--line); }
+  .bl, .touch .bl { grid-column: 3 / 7; grid-row: 2; justify-self: stretch; align-self: stretch; min-width: 0;
+    margin: 0; padding: 5px 8px; border-radius: 0 6px 6px 0; border-left: 0; }
+  .bl > .stat:not(.bucket) { display: none; }
+  .tchead { display: grid; gap: 2px; }
+  .lvl { font-size: 13px; white-space: nowrap; }
+  #windMini { display: block; font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .quota { margin-top: 2px; }
+  .quota .bar { height: 4px; margin: 3px 0 2px; }
+  #quotaTxt { font-size: 11px; }
   #minimap { width: 150px; height: 40px; }
-  .touch .bl { margin-bottom: 120px; }
   .meter { grid-template-columns: 34px 1fr 28px; }
-  .bucket { min-width: 0; }
-  .gauge { grid-template-columns: 34px 90px 84px; }
+  .bucket { min-width: 0; width: 100%; gap: 3px; }
+  .bucket > .lbl { font-size: 10px; }
+  .gauge { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 6px; }
+  .gauge .num { font-size: 11px; }
+  .glbl { font-size: 10px; }
+  .bar { height: 6px; }
 }
 @media (prefers-reduced-motion: reduce) {
   #banner, .bar i { transition: none; }
@@ -197,7 +214,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
       <div class="meter"><span class="lbl">Hull</span><div class="bar" id="hullWrap"><i id="hullBar"></i></div><span class="num" id="hullTxt">100</span></div>
     </div>
     <div class="panel tc" id="quotaPanel">
-      <div class="lvl">Shift <span id="lvlTxt">1</span></div>
+      <div class="tchead"><div class="lvl">Shift <span id="lvlTxt">1</span></div><span class="num" id="windMini"></span></div>
       <div class="quota">
         <div class="bar"><i id="quotaBar"></i></div>
         <span class="num" id="quotaTxt">0 / 150 cr</span>
@@ -1477,7 +1494,9 @@ function updateHud(info) {
   $('homeTxt').textContent = dist < 7 ? 'here' : `${Math.round(dist)} m`;
   $('homeArrow').style.transform = `rotate(${-Math.atan2(dy, dx)}rad)`;
   const w = game.wind;
-  $('windTxt').textContent = Math.abs(w) < 0.15 ? 'calm' : `${w > 0 ? '→' : '←'} ${Math.abs(w * 6).toFixed(0)} kn`;
+  const windStr = Math.abs(w) < 0.15 ? 'calm' : `${w > 0 ? '→' : '←'} ${Math.abs(w * 6).toFixed(0)} kn`;
+  $('windTxt').textContent = windStr;
+  $('windMini').textContent = 'Wind ' + windStr;
 
   const g = mctx;
   g.clearRect(0, 0, mini.width, mini.height);
