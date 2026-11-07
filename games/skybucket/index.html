@@ -93,16 +93,6 @@ body {
 #valBar { background: var(--cyan); }
 #valWrap.ready i { background: var(--ok); }
 #loadWrap.heavy i { background: var(--hazard); }
-#bucketTag {
-  position: absolute; pointer-events: none; transform: translate(-50%, -100%);
-  display: grid; justify-items: center; gap: 2px; padding: 4px 9px; border-radius: 5px;
-  background: var(--ink); border: 1px solid var(--line); white-space: nowrap;
-}
-#bucketTag b { font-size: 14px; }
-#bucketTag span { font: 700 11px/1.1 var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
-#bucketTag.ready { border-color: var(--ok); }
-#bucketTag.ready span { color: var(--ok); }
-#bucketTag.heavy span { color: var(--hazard); }
 .zoom { display: grid; grid-template-columns: auto minmax(0, 260px) auto; gap: 12px; align-items: center; justify-content: start; }
 .zoom input { width: 100%; accent-color: var(--amber); }
 #homeArrow { display: inline-block; transition: transform .1s linear; color: var(--amber); }
@@ -237,7 +227,6 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
   <div id="banner"><h2 id="bannerH"></h2><p id="bannerP"></p></div>
   <div id="pops"></div>
-  <div id="bucketTag" hidden><b class="num" id="tagVal"></b><span id="tagNote"></span></div>
 
   <div class="pad" id="padL" aria-label="Left jet">L</div>
   <div class="pad" id="padR" aria-label="Right jet">R</div>
@@ -258,7 +247,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         <span style="--c:#ff4fd8">Crystal 25 cr</span>
         <span style="--c:#ffc93a">Gold 60 cr · heavy</span>
       </div>
-      <p class="fine">Watch the tag over the bucket: it turns green once the load covers the rest of the quota. Land gently on the pad to unload everything, refuel and patch the hull. Cargo left on the ground crumbles after a few seconds. Farther vents throw richer ore. From shift 2 the wind picks up.</p>
+      <p class="fine">The bucket's value bar turns green once the load covers the rest of the quota. Land gently on the pad to unload everything, refuel and patch the hull. Cargo left on the ground crumbles after a few seconds. Farther vents throw richer ore. From shift 2 the wind picks up.</p>
       <div class="zoom">
         <label class="lbl" for="zoomRange">Zoom</label>
         <input type="range" id="zoomRange" min="0.5" max="1.6" step="0.05" value="1">
@@ -1425,7 +1414,7 @@ function updateVisuals(dt, info) {
     p.el.style.opacity = String(1 - p.t / 1.2);
     if (p.t > 1.2) { p.el.remove(); pops.splice(i, 1); }
   }
-  updateBucketTag(info);
+  checkBucketReady(info);
   if (bannerTimer > 0) { bannerTimer -= dt; if (bannerTimer <= 0) $('banner').classList.remove('show'); }
 
   // HUD (throttled)
@@ -1448,27 +1437,15 @@ mmBase.width = mini.width; mmBase.height = mini.height;
   g.fillStyle = '#ffb547'; g.fillRect(tx(PAD.x0), ty(0) - 3, (PAD.x1 - PAD.x0) * MM.s, 4);
   MM.tx = tx; MM.ty = ty;
 }
-const tagEl = $('bucketTag');
-function updateBucketTag(info) {
-  const show = game.state === 'play' && S.alive && info.bucketCount > 0 && !info.onPad;
-  tagEl.hidden = !show;
+function checkBucketReady(info) {
+  // one chime and message the moment the load first covers the rest of the quota
   const need = Math.max(0, quotaFor(game.level) - game.delivered);
-  const ready = show && info.bucketValue >= need;
+  const ready = game.state === 'play' && S.alive && !info.onPad && info.bucketCount > 0 && info.bucketValue >= need;
   if (ready && !game.bucketReady) {
     banner('', 'That load covers the quota. Take it home.', 2.2);
     [784, 1175].forEach((f, i) => setTimeout(() => audio.tone(f, 0.2, 'triangle', 0.1), i * 120));
   }
   game.bucketReady = ready;
-  if (!show) return;
-  const load = info.bucketMass / MAX_PAYLOAD;
-  tagEl.classList.toggle('ready', ready && load <= 1);
-  tagEl.classList.toggle('heavy', ready ? load > 1 : load > 0.85);
-  $('tagVal').textContent = `${info.bucketValue} cr · ${info.bucketCount}`;
-  $('tagNote').textContent = ready ? (load > 1 ? 'Enough · too heavy to lift' : 'Enough · fly home')
-    : load > 1 ? 'Overloaded' : load > 0.85 ? `Heavy · ${need - info.bucketValue} cr to go` : `${need - info.bucketValue} cr to go`;
-  tmpV.set(S.x - Math.sin(S.a) * 2.7, S.y + Math.cos(S.a) * 2.7, 0).project(camera);
-  tagEl.style.left = ((tmpV.x + 1) / 2 * innerWidth) + 'px';
-  tagEl.style.top = ((1 - tmpV.y) / 2 * innerHeight) + 'px';
 }
 
 function updateHud(info) {

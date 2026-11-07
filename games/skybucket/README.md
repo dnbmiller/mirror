@@ -26,7 +26,7 @@ Holding both arrows also fires both jets. `-`/`=` or the mouse wheel zoom the ca
 ## Rules
 
 - **Cargo:** gems (10 cr, 0.45 kg), crystals (25 cr, 1 kg) and gold (60 cr, 2.2 kg). Vents farther from home throw richer, heavier ore. A full bucket of gold weighs about as much as the jets can lift.
-- **Bucket readout:** a tag floats over the bucket with its value and piece count. It turns green once the load covers the rest of the shift's quota, and warns when the load gets heavy for the jets. The HUD shows the same value against the quota, plus the load in kg against what the jets can lift.
+- **Bucket readout:** the HUD shows the bucket's value against what's left of the shift's quota, and its load in kg against what the jets can lift. The value bar turns green, with a chime, once the load covers the quota. The load bar turns red when it gets heavy for the jets.
 - **Delivering:** set down gently on the home pad with both feet. Everything in the bucket is unloaded into the silo at once, and the platform refuels and repairs while it sits there.
 - **Damage:** hard landings and hull scrapes cost hull. The landing legs absorb more than the hull. At zero hull the platform is lost. Running dry away from the pad also costs a ship. You have three.
 - **Shifts:** meeting a quota starts the next shift. From shift 2 the wind picks up (watch the windsock and the HUD), pushing both the platform and loose cargo.
