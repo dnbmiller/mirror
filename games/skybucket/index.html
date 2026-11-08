@@ -438,28 +438,29 @@ const MAPS = [
   },
   {
     id: 'wheel', name: 'The Water Wheel',
-    blurb: 'A great water wheel fills the mouth of a shallow cave. Fly into one of its bays and ride it over the top, where the stream fills your bucket, then hop off inside and pour the water into the dry vent. Push a paddle to turn the wheel faster. Leave by the chimney at the back.',
-    intro: 'Ride a bay of the wheel into the cave and water the dry vent. Exit by the chimney.',
-    world: { x0: -60, x1: 170 }, fuel: 160, wind: 0, sun: 1.2,
+    blurb: 'A 40 m water wheel fills the mouth of a cave in the hillside. Fly in under the overhang at its 8 o\'clock side, ride a bay up and over the top where the stream fills your bucket, then hop off inside and pour the water into the dry vent. Push a paddle to turn the wheel faster. Leave by the chimney at the back.',
+    intro: 'Enter the wheel low on its left side, ride a bay into the cave and water the dry vent. Exit by the chimney.',
+    world: { x0: -60, x1: 180 }, fuel: 170, wind: 0, sun: 1.2,
     quotas: [120, 300, 600, 1000, 1500], quotaStep: 600,
-    cave: { x0: 58, x1: 122, y0: -10, y1: 31 },
-    pipe: { x: 71, y: 19.3, rate: 10, roof: true },
-    // clockwise: a bay entered on the left rises over the top and comes down on the cave side
-    wheel: { x: 70, y: 8, r: 11, n: 6, hub: 1.4, base: -0.28 },
+    cave: { x0: 50, x1: 130, y0: -5, y1: 47 },
+    pipe: { x: 76, y: 40.6, rate: 10, roof: true },
+    // clockwise: a bay entered at about 8 o'clock rises over the top and comes down on the cave side
+    wheel: { x: 75, y: 20, r: 20, n: 8, hub: 2, base: -0.28 },
     ground: [
-      [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1], [24, 2], [40, 2],
-      [50, 2.5], [56, 3.2], ...arcPts(70, 8, 11.6, 200, 340, 10), [84, 3.5], [95, 3], [105, 3], [115, 3], [119, 4],
-      [121, 12], [121, 32], [124, 34], [140, 34], [150, 60], [152, 90], [170, 90], [170, -60], [-70, -60],
+      [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1], [24, 2], [40, 2.5],
+      [55, 3.4], [61, 3.4], ...arcPts(75, 20, 20.6, 245, 340, 5), [98, 13], [108, 12.5], [116, 12.5], [122, 13], [126, 14],
+      [128, 20], [128, 48], [132, 50], [150, 52], [160, 70], [162, 90], [180, 90], [180, -60], [-70, -60],
     ],
     solids: [
-      // hill over the wheel and cave: hugs the wheel's top, roofs the cave, and leaves a chimney at the back
+      // the hill: wraps the wheel from the cave mouth over the top down to the 8 o'clock entrance,
+      // roofs the cave, and leaves a chimney at the back
       { depth: 18, front: 4, roof: true, pts: [
-        [54, 30], [80, 32], [100, 31], [112, 30], [112, 13], [110, 13], [100, 14], [90, 13],
-        ...arcPts(70, 8, 11.7, 20, 160, 10), [56, 16],
+        [48, 46], [75, 48], [100, 47], [118, 46], [118, 26], [110, 27], [100, 27],
+        ...arcPts(75, 20, 20.7, 20, 185, 5), [50, 19], [46, 26], [44, 40],
       ] },
     ],
     vents: [
-      { x: 100, y: 3, mix: [0.6, 0.3, 0.1], burst: [3, 5], dry: true },
+      { x: 112, y: 12.5, mix: [0.6, 0.3, 0.1], burst: [3, 5], dry: true },
     ],
   },
 ];
@@ -690,7 +691,7 @@ function stepDoors(dt) {
 // ---------- water wheel (maps with a `wheel` entry) ----------
 // The wheel is kinematic: the stream keeps it turning at `base` rad/s (negative = clockwise).
 // Pushes from the platform nudge it (spin, as angular impulse) and it eases back to base speed.
-const WHEEL_I = 12000, WHEEL_RELAX = 0.6, PADDLE_TH = 0.15;
+const WHEEL_I = 24000, WHEEL_RELAX = 0.6, PADDLE_TH = 0.18;
 let wheel = null;
 function buildWheelData() {
   wheel = null;
