@@ -16,7 +16,7 @@ Pick a map on the setup screen before you launch.
 
 - **The Water Wheel:** a 40 m water wheel with eight paddles fills the mouth of a cave in the hillside. The rock hugs the wheel all round, except for two openings: the entrance, low on the left at about 8 o'clock under an overhang, and the cave mouth at 3 o'clock. The stream from a nozzle above it keeps the wheel turning clockwise, about one turn every 22 s. Wait on the flat ledge in the entrance alcove, dart into a bay as it lines up with the opening, and stay level while the paddle behind carries you up and over (about 12 s). Passing under the stream fills your bucket. Fly off into the cave, then pour the water into the dry vent, as on Dry Springs (10 drops per eruption). Thrusting against a paddle in the direction it's turning speeds the wheel up by about a third; pushing the other way slows it. It eases back to normal speed once you let go. Paddle tips hit hard, and if you just sit in a bay without flying it wedges you and turns you over. Leave by the chimney at the back of the cave and fly home over the hill.
 
-The pause button (❚❚ in the top-right of the HUD, or `P`/`Esc`) has **Back to setup**, which takes you to the setup screen to change the map or settings. So does the game-over screen.
+The pause button (❚❚ in the top-right of the HUD, or `P`/`Esc`) has **Flip upright**, which sets the platform level in the nearest clear spot (not in rock, a door, a paddle or next to lava) and resumes, for when you end up stuck on your back. It also has **Back to setup**, which takes you to the setup screen to change the map or settings. So does the game-over screen.
 
 ## Secrets (spoilers)
 

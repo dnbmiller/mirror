@@ -285,7 +285,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
   <section class="overlay" id="pauseScreen" hidden>
     <div class="card" style="justify-items:start">
       <div class="big">Paused</div>
-      <div class="row"><button id="resumeBtn">Resume</button><button class="ghost" id="quitBtn">Back to setup</button></div>
+      <div class="row"><button id="resumeBtn">Resume</button><button class="ghost" id="flipBtn">Flip upright</button><button class="ghost" id="quitBtn">Back to setup</button></div>
     </div>
   </section>
 
@@ -1800,8 +1800,66 @@ function gameOver() {
   $('hud').hidden = true;
   setTimeout(() => $('againBtn').focus(), 50);
 }
+// ---------- recovery: set the platform level in the nearest spot where it fits ----------
+function pointInPoly(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function nearLava(x, y) {
+  // resting beside or over a pool, where a slope or a slip would put you in it
+  for (const lp of lavaPools) if (x + 5.6 > lp.x0 && x - 5.6 < lp.x1 && y - lp.level < 8) return true;
+  return false;
+}
+function shipFitsAt(x, y) {
+  const near = querySegs(x - 4, x + 4, y - 4, y + 4, nearShip), polys = [GROUND, ...MAP.solids.map(sd => sd.pts)];
+  for (const p of PTS) {
+    const wx = x + p.x, wy = y + p.y;
+    if (polys.some(pts => pointInPoly(wx, wy, pts))) return false;
+    if (lavaPools.length && lavaAt(wx, wy - PR)) return false;
+    for (const g of near) {
+      const rr = PR + (g.th || 0) + 0.1;
+      closest(wx, wy, g.ax, g.ay, g.dx, g.dy, g.l2);
+      if ((wx - qx) ** 2 + (wy - qy) ** 2 < rr * rr) return false;
+    }
+  }
+  for (const v of TVERTS.concat(DYN_VERTS)) {
+    const lx = v.x - x, ly = v.y - y;
+    if (lx * lx + ly * ly > 20) continue;
+    const vr = VR + (v.th || 0) + 0.1;
+    for (const h of HULL) {
+      closest(lx, ly, h.ax, h.ay, h.dx, h.dy, h.l2);
+      if ((lx - qx) ** 2 + (ly - qy) ** 2 < vr * vr) return false;
+    }
+  }
+  return true;
+}
+function flipUpright() {
+  if (!S.alive || game.state === 'title' || game.state === 'over') return false;
+  // nearest clear spot: straight up first, then widening to either side
+  let spot = null;
+  for (let r = 0; r <= 16 && !spot; r += 0.5) {
+    for (const [dx, dy] of [[0, r], [-r, r * 0.5], [r, r * 0.5], [-r, 0], [r, 0]]) {
+      const x = S.x + dx;
+      let y = S.y + dy;
+      if (!shipFitsAt(x, y)) continue;
+      // settle it down onto whatever is below, so it doesn't drop when play resumes
+      for (let k = 0; k < 120 && shipFitsAt(x, y - 0.1); k++) y -= 0.1;
+      if (nearLava(x, y)) continue;
+      spot = [x, y]; break;
+    }
+  }
+  if (spot) { S.x = spot[0]; S.y = spot[1] + 0.02; }
+  S.a = 0; S.w = 0; S.vx = 0; S.vy = 0;
+  camTarget.set(S.x, S.y + 1.6, 0);
+  banner('', 'Flipped upright', 1.2);
+  return true;
+}
 function togglePause() {
-  if (game.state === 'play') { game.state = 'paused'; $('pauseScreen').hidden = false; $('resumeBtn').focus(); }
+  if (game.state === 'play') { game.state = 'paused'; $('pauseScreen').hidden = false; $('flipBtn').disabled = !S.alive; $('resumeBtn').focus(); }
   else if (game.state === 'paused') { game.state = 'play'; $('pauseScreen').hidden = true; }
 }
 function toTitle() {
@@ -1868,6 +1926,7 @@ function popText(text, x, y) {
 $('startBtn').onclick = startGame;
 $('againBtn').onclick = startGame;
 $('resumeBtn').onclick = togglePause;
+$('flipBtn').onclick = () => { if (flipUpright()) togglePause(); };
 $('quitBtn').onclick = toTitle;
 $('overSetupBtn').onclick = toTitle;
 $('menuBtn').onclick = e => { e.currentTarget.blur(); togglePause(); };
