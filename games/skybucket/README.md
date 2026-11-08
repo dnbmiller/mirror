@@ -2,6 +2,8 @@
 
 A 2.5D physics flying game. You pilot a lift platform with a jet at each end and an open bucket on its deck. Vents out in the badlands erupt ore. Catch it in the bucket, fly it home without spilling, and land on the pad to cash it in.
 
+For how the game came together, the decisions behind each map and the full tuning reference, see [DESIGN.md](DESIGN.md).
+
 ## Maps
 
 Pick a map on the setup screen before you launch.
@@ -41,7 +43,7 @@ cd games/skybucket && python3 -m http.server 8000
 | `→` / `D` | Right jet (tilts you left) | Lean right (fires the left jet) |
 | `↑` / `W` / `Space` | Both jets | Both jets |
 
-Holding both arrows also fires both jets. `-`/`=` or the mouse wheel zoom the camera, from 50% (pulled far out) to 150% (close in). There's also a zoom slider on the setup screen. `G` toggles gyro assist, `C` swaps control scheme, `M` mutes, `P`/`Esc` pauses. On touch screens two thumb pads appear in the bottom corners, one per jet.
+Holding both arrows also fires both jets. `-`/`=` or the mouse wheel zoom the camera, from 50% (pulled far out) to 150% (close in). There's also a zoom slider on the setup screen. `F` flips the platform upright (same as the pause-screen button). `G` toggles gyro assist, `C` swaps control scheme, `M` mutes, `P`/`Esc` pauses. On touch screens two thumb pads appear in the bottom corners, one per jet.
 
 ## Rules
 

@@ -271,6 +271,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         <dt><kbd>▶</kbd> <kbd>D</kbd></dt><dd id="ctlRight">Right jet (tilts you left)</dd>
         <dt><kbd>▲</kbd> <kbd>W</kbd> <kbd>Space</kbd></dt><dd>Both jets: lift</dd>
         <dt><kbd>−</kbd> <kbd>=</kbd> <kbd>Wheel</kbd></dt><dd>Zoom out / in</dd>
+        <dt><kbd>F</kbd></dt><dd>Flip upright when you're stuck on your back</dd>
         <dt><kbd>G</kbd> <kbd>C</kbd> <kbd>M</kbd> <kbd>P</kbd></dt><dd>Gyro assist · control scheme · sound · pause (❚❚ on screen too)</dd>
       </dl>
       <div class="legend">
@@ -285,7 +286,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
   <section class="overlay" id="pauseScreen" hidden>
     <div class="card" style="justify-items:start">
       <div class="big">Paused</div>
-      <div class="row"><button id="resumeBtn">Resume</button><button class="ghost" id="flipBtn">Flip upright</button><button class="ghost" id="quitBtn">Back to setup</button></div>
+      <div class="row"><button id="resumeBtn">Resume</button><button class="ghost" id="flipBtn">Flip upright (F)</button><button class="ghost" id="quitBtn">Back to setup</button></div>
     </div>
   </section>
 
@@ -796,9 +797,10 @@ const MAX_CARGO = 46;
 const keys = Object.create(null);
 const touch = { L: false, R: false };
 const GAME_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyA', 'KeyD', 'KeyW']);
+const MENU_KEYS = new Set(['Space', 'Enter', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 addEventListener('keydown', e => {
   // on menus, let focused buttons and the zoom slider keep their own keys
-  if (game.state !== 'play' && e.target.closest && e.target.closest('button, input')) return;
+  if (game.state !== 'play' && e.target.closest && e.target.closest('button, input') && MENU_KEYS.has(e.code)) return;
   if (GAME_KEYS.has(e.code)) e.preventDefault();
   if (e.repeat) return;
   keys[e.code] = true;
@@ -807,6 +809,9 @@ addEventListener('keydown', e => {
   else if (e.code === 'KeyG') setGyro(!game.gyro);
   else if (e.code === 'KeyC') setScheme(game.scheme === 'steer' ? 'direct' : 'steer');
   else if (e.code === 'KeyM') setSound(!game.sound);
+  else if (e.code === 'KeyF' && (game.state === 'play' || game.state === 'paused')) {
+    if (flipUpright() && game.state === 'paused') togglePause();
+  }
   else if (e.code === 'Minus' || e.code === 'NumpadSubtract') setZoom(game.zoom - 0.1, true);
   else if (e.code === 'Equal' || e.code === 'NumpadAdd') setZoom(game.zoom + 0.1, true);
   else if ((e.code === 'Enter' || e.code === 'Space') && game.state === 'title') startGame();
