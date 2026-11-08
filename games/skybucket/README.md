@@ -12,6 +12,10 @@ Pick a map on the setup screen before you launch.
 
 The pause button (❚❚ in the top-right of the HUD, or `P`/`Esc`) has **Back to setup**, which takes you to the setup screen to change the map or settings. So does the game-over screen.
 
+## Secrets (spoilers)
+
+- **Lava-forged gold:** in the cave, catch a lava drip on a piece of gold (in the bucket or in mid-air) and it doubles in value, from 60 to 120 cr, without getting any heavier. It glows molten orange after that. A drip that lands on gold is absorbed, so it doesn't hurt the platform. Each piece can only be forged once. The setup screen doesn't mention this. It's in `forgeGold`.
+
 ## Running
 
 Open `index.html` in a browser. It is a single file with no build step. Three.js (r128) loads from cdnjs, so the first load needs a network connection.

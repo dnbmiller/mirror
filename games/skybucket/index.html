@@ -839,6 +839,13 @@ function stepDrips(dt) {
   for (const d of drips) {
     if (d.dead) continue;
     d.vy -= G * dt; d.y += d.vy * dt;
+    // gold catches drips before the hull does (see forgeGold)
+    for (const o of cargo) {
+      if (o.gone || o.t !== 2) continue;
+      const R = DRIP_R + o.r;
+      if ((d.x - o.x) ** 2 + (d.y - o.y) ** 2 < R * R) { d.dead = 'gold'; forgeGold(o); break; }
+    }
+    if (d.dead) continue;
     if (S.alive) {
       const dx = d.x - S.x, dy = d.y - S.y;
       if (dx * dx + dy * dy < 16) {
@@ -1317,6 +1324,20 @@ function spawnCargo(v) {
   cargo.push(o);
   sparkBurst(o.x, o.y, T.color, 8, 5);
 }
+// Easter egg: a lava drip caught on gold forges it, doubling its value at the same weight.
+// Only once per piece; further drips on forged gold are simply absorbed.
+function forgeGold(o) {
+  if (o.forged) return;
+  o.forged = true;
+  o.value *= 2;
+  const m = o.mesh.material;
+  m.color.setHex(0xffb060);
+  m.emissive.setHex(0xff5a14);
+  m.emissiveIntensity = 0.7;
+  sparkBurst(o.x, o.y, 0xffc93a, 22, 6);
+  popText(`Lava-forged gold · ${o.value} cr`, o.x, o.y + 0.9);
+  [880, 1109, 1319, 1760].forEach((f, i) => setTimeout(() => audio.tone(f, 0.22, 'triangle', 0.1), i * 70));
+}
 function removeCargo(o) {
   o.gone = true;
   scene.remove(o.mesh);
@@ -1607,6 +1628,10 @@ function updateGame(dt) {
     o.rot -= o.vx * dt / o.r * 0.6; o.rx += dt * (0.4 + Math.abs(o.vy) * 0.2);
     m.rotation.set(o.rx, o.rot * 0.3, o.rot);
     m.material.opacity = o.groundT > 3 ? (Math.sin(game.time * 20) > 0 ? 1 : 0.25) : 1;
+    if (o.forged) {
+      m.material.emissiveIntensity = 0.6 + Math.sin(game.time * 4 + o.x) * 0.2;
+      if (Math.random() < dt * 3) fireP(o.x + rand(-0.2, 0.2), o.y + 0.2, o.z, 0, rand(0.5, 1.5), 0, rand(0.3, 0.6), 0.25, 0.05, true);
+    }
   }
   for (let i = cargo.length - 1; i >= 0; i--) if (cargo[i].gone) cargo.splice(i, 1);
 
