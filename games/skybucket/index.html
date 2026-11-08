@@ -251,6 +251,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="cave">The Long Cave</button>
         <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="springs">Dry Springs</button>
         <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="mine">Falling Doors</button>
+        <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="wheel">The Water Wheel</button>
         <p class="fine" id="mapBlurb"></p>
       </div>
       <div class="zoom">
@@ -319,6 +320,12 @@ const store = {
 //  World definition (metres, y up). The game plays on the z = 0 plane.
 // ======================================================================
 const G = 9.8;
+// points on a circle, from a0 to a1 degrees, for terrain that hugs the water wheel
+function arcPts(cx, cy, r, a0, a1, step) {
+  const out = [];
+  for (let a = a0; a <= a1 + 1e-9; a += step) out.push([+(cx + r * Math.cos(a * Math.PI / 180)).toFixed(2), +(cy + r * Math.sin(a * Math.PI / 180)).toFixed(2)]);
+  return out;
+}
 // Each map shares the home pad at x = 0. `solids` are extra rock polygons (floating islands,
 // cave roofs); depth/front set how they are extruded in 3D. mix = odds of [gem, crystal, gold].
 const MAPS = [
@@ -427,6 +434,32 @@ const MAPS = [
     ],
     vents: [
       { x: 169, y: -26, mix: [0.7, 0.3, 0], burst: [3, 5] },
+    ],
+  },
+  {
+    id: 'wheel', name: 'The Water Wheel',
+    blurb: 'A great water wheel fills the mouth of a shallow cave. Fly into one of its bays and ride it over the top, where the stream fills your bucket, then hop off inside and pour the water into the dry vent. Push a paddle to turn the wheel faster. Leave by the chimney at the back.',
+    intro: 'Ride a bay of the wheel into the cave and water the dry vent. Exit by the chimney.',
+    world: { x0: -60, x1: 170 }, fuel: 160, wind: 0, sun: 1.2,
+    quotas: [120, 300, 600, 1000, 1500], quotaStep: 600,
+    cave: { x0: 58, x1: 122, y0: -10, y1: 31 },
+    pipe: { x: 71, y: 19.3, rate: 10, roof: true },
+    // clockwise: a bay entered on the left rises over the top and comes down on the cave side
+    wheel: { x: 70, y: 8, r: 11, n: 6, hub: 1.4, base: -0.28 },
+    ground: [
+      [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1], [24, 2], [40, 2],
+      [50, 2.5], [56, 3.2], ...arcPts(70, 8, 11.6, 200, 340, 10), [84, 3.5], [95, 3], [105, 3], [115, 3], [119, 4],
+      [121, 12], [121, 32], [124, 34], [140, 34], [150, 60], [152, 90], [170, 90], [170, -60], [-70, -60],
+    ],
+    solids: [
+      // hill over the wheel and cave: hugs the wheel's top, roofs the cave, and leaves a chimney at the back
+      { depth: 18, front: 4, roof: true, pts: [
+        [54, 30], [80, 32], [100, 31], [112, 30], [112, 13], [110, 13], [100, 14], [90, 13],
+        ...arcPts(70, 8, 11.7, 20, 160, 10), [56, 16],
+      ] },
+    ],
+    vents: [
+      { x: 100, y: 3, mix: [0.6, 0.3, 0.1], burst: [3, 5], dry: true },
     ],
   },
 ];
@@ -654,6 +687,47 @@ function stepDoors(dt) {
   if (e) e.hitShip = false;
 }
 
+// ---------- water wheel (maps with a `wheel` entry) ----------
+// The wheel is kinematic: the stream keeps it turning at `base` rad/s (negative = clockwise).
+// Pushes from the platform nudge it (spin, as angular impulse) and it eases back to base speed.
+const WHEEL_I = 12000, WHEEL_RELAX = 0.6, PADDLE_TH = 0.15;
+let wheel = null;
+function buildWheelData() {
+  wheel = null;
+  const Wd = MAP.wheel;
+  if (!Wd) return;
+  wheel = { cx: Wd.x, cy: Wd.y, r: Wd.r, n: Wd.n, hub: Wd.hub, base: Wd.base, w: Wd.base, angle: 0, spin: 0, segs: [], verts: [] };
+  const mk = () => ({ ax: 0, ay: 0, dx: 0, dy: 0, l2: 1, nx: 0, ny: 1, minx: 0, maxx: 0, miny: 0, maxy: 0, stamp: 0,
+    wheel, twoSided: true, th: PADDLE_TH });
+  for (let k = 0; k < Wd.n * 2; k++) wheel.segs.push(mk()); // paddles, then hub chords
+  for (let k = 0; k < Wd.n; k++) wheel.verts.push({ x: 0, y: 0, wheel, th: PADDLE_TH });
+  DYN_SEGS.push(...wheel.segs); DYN_VERTS.push(...wheel.verts);
+  placeWheel();
+}
+function placeWheel() {
+  const W = wheel, set = (g, ax, ay, bx, by) => {
+    const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy);
+    Object.assign(g, { ax, ay, dx, dy, l2: l * l, nx: -dy / l, ny: dx / l,
+      minx: Math.min(ax, bx), maxx: Math.max(ax, bx), miny: Math.min(ay, by), maxy: Math.max(ay, by) });
+  };
+  for (let k = 0; k < W.n; k++) {
+    const a = W.angle + k * Math.PI * 2 / W.n, c = Math.cos(a), s = Math.sin(a);
+    const a2 = a + Math.PI * 2 / W.n;
+    set(W.segs[k], W.cx + c * W.hub, W.cy + s * W.hub, W.cx + c * W.r, W.cy + s * W.r);
+    set(W.segs[W.n + k], W.cx + c * W.hub, W.cy + s * W.hub, W.cx + Math.cos(a2) * W.hub, W.cy + Math.sin(a2) * W.hub);
+    W.verts[k].x = W.cx + c * W.r; W.verts[k].y = W.cy + s * W.r;
+  }
+}
+function stepWheel(dt) {
+  const W = wheel;
+  W.w += W.spin / WHEEL_I;
+  W.spin = 0;
+  W.w += (W.base - W.w) * Math.min(1, WHEEL_RELAX * dt);
+  W.w = clamp(W.w, W.base * 2.2, 0.05);
+  W.angle += W.w * dt;
+  placeWheel();
+}
+
 function raycast(ox, oy, dx, dy, maxT) {
   const ex = ox + dx * maxT, ey = oy + dy * maxT;
   const list = querySegs(Math.min(ox, ex), Math.max(ox, ex), Math.min(oy, ey), Math.max(oy, ey), rayTmp);
@@ -773,7 +847,7 @@ function readJets() {
 // ======================================================================
 const PDT = 1 / 240;
 const nearShip = [], nearCargo = [];
-const C = Array.from({ length: 96 }, () => ({ x: 0, y: 0, nx: 0, ny: 0, pen: 0, foot: 0 }));
+const C = Array.from({ length: 128 }, () => ({ x: 0, y: 0, nx: 0, ny: 0, pen: 0, foot: 0, svx: 0, svy: 0, wheel: null }));
 const events = { clinks: [], impact: 0 };
 
 function windAt(t) {
@@ -805,6 +879,11 @@ function stepShip(dt) {
   shipVsTerrain();
 }
 
+function surfaceVel(ct, W) {
+  // velocity of the surface at the contact point (zero for still rock)
+  if (W) { ct.svx = -W.w * (ct.y - W.cy); ct.svy = W.w * (ct.x - W.cx); ct.wheel = W; }
+  else { ct.svx = 0; ct.svy = 0; ct.wheel = null; }
+}
 function shipVsTerrain() {
   S.footL = S.footR = false;
   const c = Math.cos(S.a), s = Math.sin(S.a);
@@ -814,17 +893,18 @@ function shipVsTerrain() {
     const p = PTS[i];
     const wx = S.x + p.x * c - p.y * s, wy = S.y + p.x * s + p.y * c;
     for (let k = 0; k < near.length; k++) {
-      const g = near[k];
-      if (wx < g.minx - PR || wx > g.maxx + PR || wy < g.miny - PR || wy > g.maxy + PR) continue;
+      const g = near[k], rr = PR + (g.th || 0);
+      if (wx < g.minx - rr || wx > g.maxx + rr || wy < g.miny - rr || wy > g.maxy + rr) continue;
       closest(wx, wy, g.ax, g.ay, g.dx, g.dy, g.l2);
       let nx = wx - qx, ny = wy - qy;
       const d2 = nx * nx + ny * ny;
-      if (d2 >= PR * PR) continue;
+      if (d2 >= rr * rr) continue;
       const d = Math.sqrt(d2);
       let pen;
       if (d > 1e-6) { nx /= d; ny /= d; } else { nx = g.nx; ny = g.ny; }
-      if (nx * g.nx + ny * g.ny < -0.2) { nx = g.nx; ny = g.ny; pen = PR + d; } else pen = PR - d;
+      if (!g.twoSided && nx * g.nx + ny * g.ny < -0.2) { nx = g.nx; ny = g.ny; pen = rr + d; } else pen = rr - d;
       const ct = C[n++]; ct.x = qx; ct.y = qy; ct.nx = nx; ct.ny = ny; ct.pen = pen; ct.foot = p.foot || 0;
+      surfaceVel(ct, g.wheel);
       if (g.door) g.door.hitShip = true;
       if (n >= C.length) break;
     }
@@ -836,14 +916,16 @@ function shipVsTerrain() {
     const dx = v.x - S.x, dy = v.y - S.y;
     if (dx * dx + dy * dy > 16) continue;
     const lx = dx * c + dy * s, ly = -dx * s + dy * c;
+    const vr = VR + (v.th || 0);
     for (let k = 0; k < HULL.length; k++) {
       const h = HULL[k];
       closest(lx, ly, h.ax, h.ay, h.dx, h.dy, h.l2);
       let nx = qx - lx, ny = qy - ly;
       const d2 = nx * nx + ny * ny;
-      if (d2 >= VR * VR || d2 < 1e-12) continue;
+      if (d2 >= vr * vr || d2 < 1e-12) continue;
       const d = Math.sqrt(d2); nx /= d; ny /= d;
-      const ct = C[n++]; ct.x = v.x; ct.y = v.y; ct.nx = nx * c - ny * s; ct.ny = nx * s + ny * c; ct.pen = VR - d; ct.foot = 0;
+      const ct = C[n++]; ct.x = v.x; ct.y = v.y; ct.nx = nx * c - ny * s; ct.ny = nx * s + ny * c; ct.pen = vr - d; ct.foot = 0;
+      surfaceVel(ct, v.wheel);
       if (v.door) v.door.hitShip = true;
       if (n >= C.length) break;
     }
@@ -862,7 +944,7 @@ function shipVsTerrain() {
       const ct = C[i];
       if (ct.foot === 1) { S.footL = true; S.footLT = game.time; } else if (ct.foot === 2) { S.footR = true; S.footRT = game.time; }
       const rx = ct.x - S.x, ry = ct.y - S.y, nx = ct.nx, ny = ct.ny;
-      const vn = (S.vx - S.w * ry) * nx + (S.vy + S.w * rx) * ny;
+      const vn = (S.vx - S.w * ry - ct.svx) * nx + (S.vy + S.w * rx - ct.svy) * ny;
       if (vn >= 0) continue;
       if (it === 0) {
         const thr = ct.foot ? 5.5 : 3.5;
@@ -876,12 +958,17 @@ function shipVsTerrain() {
       const j = -(1 + e) * vn / K;
       S.vx += j * nx / SHIP_M; S.vy += j * ny / SHIP_M; S.w += rn * j / SHIP_I;
       const tx = -ny, ty = nx;
-      const vt = (S.vx - S.w * ry) * tx + (S.vy + S.w * rx) * ty;
+      const vt = (S.vx - S.w * ry - ct.svx) * tx + (S.vy + S.w * rx - ct.svy) * ty;
       const rt = rx * ty - ry * tx;
       const Kt = 1 / SHIP_M + rt * rt / SHIP_I;
       const mu = ct.foot ? 0.9 : 0.55;
       const jt = clamp(-vt / Kt, -mu * j, mu * j);
       S.vx += jt * tx / SHIP_M; S.vy += jt * ty / SHIP_M; S.w += rt * jt / SHIP_I;
+      if (ct.wheel) {
+        // equal and opposite push on the wheel: this is how the bucket can turn it faster
+        const Jx = j * nx + jt * tx, Jy = j * ny + jt * ty;
+        ct.wheel.spin -= (ct.x - ct.wheel.cx) * Jy - (ct.y - ct.wheel.cy) * Jx;
+      }
     }
   }
   if (worst > 0 && game.state === 'play') damageShip(worst);
@@ -896,22 +983,23 @@ function stepCargo(o, dt) {
   o.ground = false;
   const near = querySegs(o.x - o.r, o.x + o.r, o.y - o.r, o.y + o.r, nearCargo);
   for (let k = 0; k < near.length; k++) {
-    const g = near[k];
+    const g = near[k], rr = o.r + (g.th || 0);
     closest(o.x, o.y, g.ax, g.ay, g.dx, g.dy, g.l2);
     let nx = o.x - qx, ny = o.y - qy;
     const d2 = nx * nx + ny * ny;
-    if (d2 >= o.r * o.r) continue;
+    if (d2 >= rr * rr) continue;
     const d = Math.sqrt(d2);
     let pen;
     if (d > 1e-6) { nx /= d; ny /= d; } else { nx = g.nx; ny = g.ny; }
-    if (nx * g.nx + ny * g.ny < -0.2) { nx = g.nx; ny = g.ny; pen = o.r + d; } else pen = o.r - d;
+    if (!g.twoSided && nx * g.nx + ny * g.ny < -0.2) { nx = g.nx; ny = g.ny; pen = rr + d; } else pen = rr - d;
     o.x += nx * pen; o.y += ny * pen;
-    const vn = o.vx * nx + o.vy * ny;
+    const W = g.wheel, svx = W ? -W.w * (qy - W.cy) : 0, svy = W ? W.w * (qx - W.cx) : 0;
+    const vn = (o.vx - svx) * nx + (o.vy - svy) * ny;
     if (vn < 0) {
       const e = -vn > 1.5 ? 0.32 : 0;
       const jn = -(1 + e) * vn;
       o.vx += jn * nx; o.vy += jn * ny;
-      const tx = -ny, ty = nx, vt = o.vx * tx + o.vy * ty;
+      const tx = -ny, ty = nx, vt = (o.vx - svx) * tx + (o.vy - svy) * ty;
       const mu = TYPES[o.t].fric ?? 0.45;
       const jt = clamp(-vt, -mu * jn, mu * jn);
       o.vx += jt * tx; o.vy += jt * ty;
@@ -1037,6 +1125,7 @@ function physicsStep(dt) {
   game.time += dt;
   game.wind = windAt(game.time);
   if (mine.doors.length) stepDoors(dt);
+  if (wheel) stepWheel(dt);
   if (S.alive) stepShip(dt);
   if (S.alive && lavaPools.length) shipVsLava(dt);
   if (drips.length) stepDrips(dt);
@@ -1190,6 +1279,14 @@ function buildLavaMeshes() {
 // water tower behind the flight line, its pipe running forward and turning down over the play plane
 function buildPipe(P) {
   const pipeMat = new THREE.MeshStandardMaterial({ color: 0x6f8796, roughness: 0.5, metalness: 0.6 });
+  if (P.roof) {
+    // a nozzle let into the rock above the wheel
+    const noz = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.3, 1.4, 12), pipeMat);
+    noz.position.set(P.x, P.y + 0.7, 0); levelGroup.add(noz);
+    const flange = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.15, 16), pipeMat);
+    flange.position.set(P.x, P.y + 1.2, 0); levelGroup.add(flange);
+    return;
+  }
   const tankMat = new THREE.MeshStandardMaterial({ color: 0x8aa0ad, roughness: 0.6, metalness: 0.4 });
   const tx = P.x + 10, tz = -7, gy = groundHeightAt(tx);
   const add = (m, x, y, z) => { m.position.set(x, y, z); m.castShadow = true; levelGroup.add(m); return m; };
@@ -1241,6 +1338,36 @@ function buildDoorMeshes() {
       levelGroup.add(exitLamp);
     }
   }
+}
+let wheelGroup = null;
+function buildWheelMeshes() {
+  wheelGroup = null;
+  if (!wheel) return;
+  const W = wheel, g = new THREE.Group();
+  const wood = new THREE.MeshStandardMaterial({ color: 0x7a5434, roughness: 0.85 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x3b4048, roughness: 0.5, metalness: 0.7 });
+  const len = W.r - W.hub;
+  for (let k = 0; k < W.n; k++) {
+    const a = k * Math.PI * 2 / W.n;
+    const paddle = new THREE.Mesh(new THREE.BoxGeometry(len, PADDLE_TH * 2, 6), wood);
+    paddle.position.set(Math.cos(a) * (W.hub + len / 2), Math.sin(a) * (W.hub + len / 2), 0);
+    paddle.rotation.z = a;
+    paddle.castShadow = true; paddle.receiveShadow = true;
+    g.add(paddle);
+  }
+  for (const z of [-3.15, 3.15]) {
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(W.r, 0.16, 8, 64), iron);
+    rim.position.z = z; g.add(rim);
+    const inner = new THREE.Mesh(new THREE.TorusGeometry(W.hub, 0.14, 6, 24), iron);
+    inner.position.z = z; g.add(inner);
+  }
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(W.hub, W.hub, 6.6, 18), iron);
+  hub.rotation.x = Math.PI / 2; g.add(hub);
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 14, 10), iron);
+  axle.rotation.x = Math.PI / 2; axle.position.z = -6; g.add(axle);
+  g.position.set(W.cx, W.cy, 0);
+  levelGroup.add(g);
+  wheelGroup = g;
 }
 function clearDrips() {
   for (const d of drips) scene.remove(d.mesh);
@@ -2061,6 +2188,8 @@ function updateVisuals(dt, info) {
   }
   if (exitLamp) exitLampMat.color.setHex(mine.exit.state === 'down' ? (Math.sin(game.time * 5) > 0 ? 0xff3b2e : 0x5a1410) : 0x5dff7a);
 
+  if (wheelGroup) wheelGroup.rotation.z = wheel.angle;
+
   // windsock
   const ws = game.wind;
   const holder = sock.userData.holder;
@@ -2167,6 +2296,8 @@ function loadMap(id) {
   buildLavaMeshes();
   buildDoorsData();
   buildDoorMeshes();
+  buildWheelData();
+  buildWheelMeshes();
   vents = MAP.vents.map((d, i) => ({ ...d, i, state: 'idle', t: rand(1, 4) + i * 0.5, left: 0, glow: 0, water: 0 }));
   if (MAP.pipe) buildPipe(MAP.pipe);
   ventVis = vents.map(makeVentVis);
@@ -2285,7 +2416,7 @@ function frame(now) {
 }
 loadMap(MAP.id);
 requestAnimationFrame(frame);
-window.__skybucket = { mine, get lavaPools() { return lavaPools; }, get lavaCracks() { return lavaCracks; }, drips, game, S, cargo, get vents() { return vents; }, get map() { return MAP; }, keys, physicsStep, updateGame, spawnCargo, PDT, loadMap };
+window.__skybucket = { get wheel() { return wheel; }, mine, get lavaPools() { return lavaPools; }, get lavaCracks() { return lavaCracks; }, drips, game, S, cargo, get vents() { return vents; }, get map() { return MAP; }, keys, physicsStep, updateGame, spawnCargo, PDT, loadMap };
 })();
 </script>
 </body>
