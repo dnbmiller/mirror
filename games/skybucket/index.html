@@ -349,11 +349,16 @@ const MAPS = [
   },
   {
     id: 'cave', name: 'The Long Cave',
-    blurb: 'A 280 m tunnel of rolling hills and hanging rock, with one rich vent at the far end. No wind, more fuel.',
-    intro: 'The only vent is at the far end of the cave.',
+    blurb: 'A 280 m tunnel of rolling hills and hanging rock, with one rich vent at the far end. Lava pools in the dips and drips from cracks in the roof, for triple damage. No wind, more fuel.',
+    intro: 'The only vent is at the far end. Stay out of the lava: it does triple damage.',
     world: { x0: -60, x1: 330 }, fuel: 260, wind: 0, sun: 0.75,
     quotas: [180, 450, 850, 1400, 2100], quotaStep: 800,
     cave: { x0: 26, x1: 312 },
+    // pools fill the floor's dips up to `level`; cracks drip from the roof directly above x
+    lava: {
+      pools: [{ x: 44, level: -1 }, { x: 92, level: -1.5 }, { x: 148, level: -2.8 }, { x: 214, level: -0.8 }],
+      cracks: [58, 80, 118, 132, 156, 186, 206, 230, 248],
+    },
     ground: [
       [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1], [24, 2], [34, 0],
       [44, -2], [54, 3], [62, 8], [70, 5], [80, -1], [92, -3], [102, 2], [110, 9], [116, 11], [122, 6], [134, 0],
@@ -451,6 +456,47 @@ function groundHeightAt(x) {
   }
   return 0;
 }
+// ---------- lava (maps with a `lava` entry) ----------
+// Everything lava does is a normal amount times LAVA_MULT: crash damage on a lava floor,
+// a drip hitting the platform, and the burn from sitting in a pool.
+const LAVA_MULT = 3, LAVA_BURN_BASE = 12, DRIP_BASE = 8, DRIP_R = 0.32;
+let lavaPools = [], lavaCracks = [];
+const drips = [];
+function lavaAt(x, y) {
+  for (let i = 0; i < lavaPools.length; i++) {
+    const p = lavaPools[i];
+    if (x > p.x0 && x < p.x1 && y < p.level) return p;
+  }
+  return null;
+}
+function roofAt(x) {
+  // lowest underside of any roof solid above the floor at x
+  let best = Infinity;
+  for (const sd of MAP.solids) {
+    if (!sd.roof) continue;
+    const pts = sd.pts;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      if (a[0] === b[0] || x < Math.min(a[0], b[0]) || x > Math.max(a[0], b[0])) continue;
+      const y = lerp(a[1], b[1], (x - a[0]) / (b[0] - a[0]));
+      if (y > groundHeightAt(x) && y < best) best = y;
+    }
+  }
+  return best;
+}
+function buildLavaData() {
+  lavaPools = []; lavaCracks = [];
+  const L = MAP.lava;
+  if (!L) return;
+  for (const d of L.pools) {
+    let x0 = d.x, x1 = d.x;
+    while (groundHeightAt(x0 - 0.1) < d.level) x0 -= 0.1;
+    while (groundHeightAt(x1 + 0.1) < d.level) x1 += 0.1;
+    lavaPools.push({ x0, x1, level: d.level });
+  }
+  for (const x of L.cracks) lavaCracks.push({ x, y: roofAt(x), state: 'idle', t: rand(1, 6) });
+}
+
 function raycast(ox, oy, dx, dy, maxT) {
   const ex = ox + dx * maxT, ey = oy + dy * maxT;
   const list = querySegs(Math.min(ox, ex), Math.max(ox, ex), Math.min(oy, ey), Math.max(oy, ey), rayTmp);
@@ -491,11 +537,11 @@ const PR = 0.1, VR = 0.09;
 
 const S = {
   x: 0, y: 0.9, vx: 0, vy: 0, a: 0, w: 0, fuel: MAP.fuel, hull: 100, jetL: 0, jetR: 0,
-  alive: true, footL: false, footR: false, footLT: -1, footRT: -1, landedT: 0, deadT: 0, strandT: 0, hitT: 0,
+  alive: true, footL: false, footR: false, footLT: -1, footRT: -1, landedT: 0, deadT: 0, strandT: 0, hitT: 0, burnT: 0,
 };
 function resetShip() {
   Object.assign(S, { x: 0, y: 0.9, vx: 0, vy: 0, a: 0, w: 0, fuel: MAP.fuel, hull: 100, jetL: 0, jetR: 0,
-    alive: true, landedT: 0, deadT: 0, strandT: 0, footLT: -1, footRT: -1 });
+    alive: true, landedT: 0, deadT: 0, strandT: 0, footLT: -1, footRT: -1, burnT: 0 });
 }
 
 // ======================================================================
@@ -660,7 +706,8 @@ function shipVsTerrain() {
       if (vn >= 0) continue;
       if (it === 0) {
         const thr = ct.foot ? 5.5 : 3.5;
-        worst = Math.max(worst, (-vn - thr) * (ct.foot ? 8 : 11));
+        const mult = lavaPools.length && lavaAt(ct.x, ct.y + 0.01) ? LAVA_MULT : 1;
+        worst = Math.max(worst, (-vn - thr) * (ct.foot ? 8 : 11) * mult);
         events.impact = Math.max(events.impact, -vn);
       }
       const rn = rx * ny - ry * nx;
@@ -781,10 +828,47 @@ function cargoVsCargo() {
   }
 }
 
+function shipVsLava(dt) {
+  const c = Math.cos(S.a), s = Math.sin(S.a);
+  for (const p of PTS) {
+    if (lavaAt(S.x + p.x * c - p.y * s, S.y + p.x * s + p.y * c - PR)) { burnShip(dt); return; }
+  }
+}
+function stepDrips(dt) {
+  const c = Math.cos(S.a), s = Math.sin(S.a);
+  for (const d of drips) {
+    if (d.dead) continue;
+    d.vy -= G * dt; d.y += d.vy * dt;
+    if (S.alive) {
+      const dx = d.x - S.x, dy = d.y - S.y;
+      if (dx * dx + dy * dy < 16) {
+        const lx = dx * c + dy * s, ly = -dx * s + dy * c, R = DRIP_R + HULL_R;
+        for (const h of HULL) {
+          closest(lx, ly, h.ax, h.ay, h.dx, h.dy, h.l2);
+          if ((lx - qx) ** 2 + (ly - qy) ** 2 < R * R) { d.dead = 'ship'; break; }
+        }
+        if (d.dead) {
+          if (game.state === 'play') { damageShip(DRIP_BASE * LAVA_MULT); audio.thud(0.3, 1600, 0.4); }
+          continue;
+        }
+      }
+    }
+    if (lavaAt(d.x, d.y)) { d.dead = 'pool'; continue; }
+    if (d.y > d.y0 - 1) continue; // still clearing the crack it fell from
+    const near = querySegs(d.x - DRIP_R, d.x + DRIP_R, d.y - DRIP_R, d.y + DRIP_R, nearCargo);
+    for (const g of near) {
+      closest(d.x, d.y, g.ax, g.ay, g.dx, g.dy, g.l2);
+      if ((d.x - qx) ** 2 + (d.y - qy) ** 2 < DRIP_R * DRIP_R) { d.dead = 'rock'; break; }
+    }
+  }
+}
+
 function physicsStep(dt) {
   game.time += dt;
   game.wind = windAt(game.time);
   if (S.alive) stepShip(dt);
+  if (S.alive && lavaPools.length) shipVsLava(dt);
+  if (drips.length) stepDrips(dt);
   for (const o of cargo) if (!o.gone) stepCargo(o, dt);
   if (S.alive) {
     const c = Math.cos(S.a), s = Math.sin(S.a);
@@ -865,6 +949,77 @@ function polyMesh(pts, depth, zFront, castShadow = true) {
 const caveWallTex = strata.clone();
 caveWallTex.needsUpdate = true;
 const caveWallMat = new THREE.MeshStandardMaterial({ map: caveWallTex, color: 0x9a8a92, roughness: 1 });
+const lavaTex = canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#c2280c'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * w, y = Math.random() * h, r = rand(8, 34);
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(255,236,140,0.95)'); gr.addColorStop(0.45, 'rgba(255,140,30,0.7)'); gr.addColorStop(1, 'rgba(255,90,20,0)');
+    g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  g.strokeStyle = 'rgba(40,10,8,0.55)'; g.lineWidth = 2;
+  for (let i = 0; i < 26; i++) {
+    let x = Math.random() * w, y = Math.random() * h;
+    g.beginPath(); g.moveTo(x, y);
+    for (let k = 0; k < 5; k++) { x += rand(-22, 22); y += rand(-22, 22); g.lineTo(x, y); }
+    g.stroke();
+  }
+});
+lavaTex.wrapS = lavaTex.wrapT = THREE.RepeatWrapping;
+lavaTex.repeat.set(1 / 7, 1 / 7);
+const lavaMat = new THREE.MeshBasicMaterial({ map: lavaTex, side: THREE.DoubleSide });
+const crackMat = new THREE.MeshBasicMaterial({ color: 0xff6a1a });
+let crackGlowMat = null; // made on first use, from the sun sprite's soft radial texture
+const dripGeo = new THREE.SphereGeometry(DRIP_R, 12, 8);
+const dripMat = new THREE.MeshBasicMaterial({ color: 0xffa040 });
+const lavaLights = [];
+function buildLavaMeshes() {
+  lavaLights.length = 0;
+  for (const p of lavaPools) {
+    // flat molten surface across the play depth
+    const top = new THREE.ShapeGeometry(new THREE.Shape([
+      new THREE.Vector2(p.x0, -4), new THREE.Vector2(p.x1, -4), new THREE.Vector2(p.x1, 3.8), new THREE.Vector2(p.x0, 3.8)]));
+    top.rotateX(-Math.PI / 2);
+    const tm = new THREE.Mesh(top, lavaMat);
+    tm.position.y = p.level;
+    levelGroup.add(tm);
+    // cross-section on the terrain's front face, so the pool reads as filling the dip
+    const pts = [new THREE.Vector2(p.x0, p.level), new THREE.Vector2(p.x1, p.level)];
+    for (let x = p.x1; x > p.x0; x -= 0.5) pts.push(new THREE.Vector2(x, groundHeightAt(x)));
+    const fm = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(pts)), lavaMat);
+    fm.position.z = 4.02;
+    levelGroup.add(fm);
+    const light = new THREE.PointLight(0xff6a20, 2.4, 26, 2);
+    light.position.set((p.x0 + p.x1) / 2, p.level + 2.5, 1.5);
+    levelGroup.add(light);
+    lavaLights.push(light);
+  }
+  for (const k of lavaCracks) {
+    const g = new THREE.Group();
+    g.position.set(k.x, k.y, 0);
+    for (let i = 0; i < 4; i++) {
+      const seg = new THREE.Mesh(new THREE.BoxGeometry(rand(1, 2.2), 0.12, 0.2), crackMat);
+      seg.position.set(rand(-0.5, 0.5), -0.03, rand(-2.5, 2.5));
+      seg.rotation.y = rand(-1.2, 1.2);
+      g.add(seg);
+    }
+    crackGlowMat = crackGlowMat || new THREE.SpriteMaterial({ map: sunSprite.material.map, color: 0xff6a1a,
+      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 });
+    const glow = new THREE.Sprite(crackGlowMat.clone());
+    glow.scale.setScalar(3); glow.position.set(0, -0.2, 1.2);
+    g.add(glow);
+    k.glow = glow;
+    const bead = new THREE.Mesh(dripGeo, dripMat);
+    bead.position.y = -0.15; bead.scale.setScalar(0.001);
+    g.add(bead);
+    k.bead = bead;
+    levelGroup.add(g);
+  }
+}
+function clearDrips() {
+  for (const d of drips) scene.remove(d.mesh);
+  drips.length = 0;
+}
 const caveGlowMats = [0, 1].map(t => new THREE.MeshStandardMaterial({ color: TYPES[t].color, emissive: TYPES[t].color, emissiveIntensity: 0.6, roughness: 0.3 }));
 
 // --- distant ridges for depth
@@ -1191,6 +1346,7 @@ function levelUp() {
 function damageShip(amount) {
   if (!S.alive) return;
   S.hull -= amount;
+  game.lastHit = amount;
   game.shake = Math.max(game.shake, Math.min(1, amount / 30));
   S.hitT = 0.35;
   audio.thud(clamp(amount / 40, 0.15, 0.7), 140);
@@ -1199,8 +1355,22 @@ function damageShip(amount) {
   $('hullWrap').parentElement.parentElement.classList.add('flash');
   if (S.hull <= 0) explode();
 }
+function burnShip(dt) {
+  if (game.state !== 'play') return;
+  S.hull -= LAVA_BURN_BASE * LAVA_MULT * dt;
+  S.burnT -= dt;
+  if (S.burnT <= 0) {
+    S.burnT = 0.3;
+    game.shake = Math.max(game.shake, 0.35);
+    audio.thud(0.28, 1500, 0.35);
+    const panel = $('hullWrap').parentElement.parentElement;
+    panel.classList.remove('flash'); void panel.offsetWidth; panel.classList.add('flash');
+    for (let i = 0; i < 6; i++) fireP(S.x + rand(-3, 3), S.y - 0.6, rand(-1, 1), rand(-1, 1), rand(2, 5), 0, rand(0.3, 0.6), 0.7, 0.2, true);
+  }
+  if (S.hull <= 0) explode();
+}
 function explode() {
-  S.alive = false; S.hull = 0; S.deadT = 2.8;
+  S.alive = false; S.hull = 0; S.deadT = 2.8; S.burnT = 0;
   ship.visible = false;
   game.shake = 1.2;
   sparkBurst(S.x, S.y, 0xffb547, 90, 16);
@@ -1226,6 +1396,8 @@ function startGame() {
   for (const o of cargo) if (!o.gone) removeCargo(o);
   cargo.length = 0;
   Object.assign(game, { state: 'play', level: 1, delivered: 0, lives: 3, time: 0 });
+  clearDrips();
+  lavaCracks.forEach(k => { k.state = 'idle'; k.t = rand(1, 6); k.bead.scale.setScalar(0.001); });
   vents.forEach((v, i) => { v.state = 'idle'; v.t = rand(1, 3) + i; v.left = 0; });
   resetShip();
   ship.visible = true;
@@ -1359,6 +1531,56 @@ function updateGame(dt) {
     vis.light.intensity = v.glow * 3.2;
   });
 
+  // lava: cracks swell and drop drips near the platform; pools glow and spit embers
+  for (const k of lavaCracks) {
+    k.t -= dt;
+    if (k.state === 'idle') {
+      k.glow.material.opacity = 0.45 + Math.sin(game.time * 2 + k.x) * 0.1;
+      k.glow.scale.setScalar(3);
+      if (k.t <= 0) {
+        if (Math.abs(S.x - k.x) < 45) { k.state = 'warn'; k.t = 1.1; } else k.t = 1;
+      }
+    } else {
+      const grow = 1 - k.t / 1.1;
+      k.bead.scale.setScalar(Math.max(0.001, grow));
+      k.glow.material.opacity = 0.55 + grow * 0.45;
+      k.glow.scale.setScalar(3 + grow * 3);
+      if (Math.random() < dt * 8) fireP(k.x + rand(-0.4, 0.4), k.y - 0.1, rand(-1, 1), 0, -rand(0.5, 2), 0, rand(0.3, 0.6), 0.25, 0.1, true);
+      if (k.t <= 0) {
+        const mesh = new THREE.Mesh(dripGeo, dripMat);
+        scene.add(mesh);
+        drips.push({ x: k.x, y: k.y - DRIP_R - 0.1, y0: k.y, vy: 0, mesh, dead: false });
+        k.bead.scale.setScalar(0.001);
+        k.state = 'idle'; k.t = rand(4, 9);
+      }
+    }
+  }
+  for (let i = drips.length - 1; i >= 0; i--) {
+    const d = drips[i];
+    if (d.dead) {
+      const n = d.dead === 'ship' ? 26 : 14;
+      for (let k = 0; k < n; k++) fireP(d.x, d.y, rand(-0.5, 0.5), rand(-4, 4), rand(1, 5), rand(-1, 1), rand(0.3, 0.7), 0.5, 0.1, true);
+      smokeP(d.x, d.y, 0, 0, 1.5, 0, 1, 0.6, 2.2, [0.3, 0.26, 0.26], 0.5);
+      scene.remove(d.mesh);
+      drips.splice(i, 1);
+      continue;
+    }
+    d.mesh.position.set(d.x, d.y, 0);
+    d.mesh.scale.set(1, 1 + Math.min(1, -d.vy / 10), 1);
+    if (Math.random() < 0.6) fireP(d.x, d.y + 0.2, rand(-0.2, 0.2), 0, d.vy * 0.3, 0, 0.25, 0.35, 0.05, false);
+    if (d.y < -60) { scene.remove(d.mesh); drips.splice(i, 1); }
+  }
+  if (lavaPools.length) {
+    lavaTex.offset.x = (lavaTex.offset.x + dt * 0.012) % 1;
+    lavaTex.offset.y = Math.sin(game.time * 0.2) * 0.05;
+    lavaPools.forEach((p, i) => {
+      lavaLights[i].intensity = 2.1 + Math.sin(game.time * 3 + i * 2) * 0.35 + Math.random() * 0.25;
+      if (Math.abs(S.x - p.x0) < 70 && Math.random() < dt * (p.x1 - p.x0) * 0.5) {
+        fireP(rand(p.x0, p.x1), p.level + 0.05, rand(-3, 3.5), rand(-0.4, 0.4), rand(1, 3.5), 0, rand(0.5, 1.1), 0.3, 0.05, Math.random() < 0.3);
+      }
+    });
+  }
+
   // cargo bookkeeping
   let bucketValue = 0, bucketMass = 0, bucketCount = 0;
   for (const o of cargo) {
@@ -1367,6 +1589,13 @@ function updateGame(dt) {
     if (o.inBucket) { bucketValue += o.value; bucketMass += o.m; bucketCount++; }
     const speed = Math.hypot(o.vx, o.vy);
     if (o.ground && !o.inBucket && speed < 1.5) o.groundT += dt; else o.groundT = Math.max(0, o.groundT - dt * 2);
+    if (lavaPools.length && lavaAt(o.x, o.y - o.r)) {
+      sparkBurst(o.x, o.y, 0xff7a2e, 12, 4);
+      smokeP(o.x, o.y, o.z, 0, 2, 0, 1.2, 0.5, 2, [0.35, 0.3, 0.3], 0.6);
+      if (Math.abs(o.x - S.x) < 30) audio.thud(0.15, 1800, 0.3);
+      removeCargo(o);
+      continue;
+    }
     if (o.groundT > 5 || o.y < -45 || o.x < MAP.world.x0 - 20 || o.x > MAP.world.x1 + 20) {
       sparkBurst(o.x, o.y, TYPES[o.t].color, 10, 3);
       smokeP(o.x, o.y, o.z, 0, 1, 0, 1, 0.5, 1.6, [0.5, 0.42, 0.4], 0.5);
@@ -1525,6 +1754,8 @@ function drawMinimapBase() {
     g.closePath(); g.fill();
   }
   g.fillStyle = '#ffb547'; g.fillRect(tx(PAD.x0), ty(0) - 3, (PAD.x1 - PAD.x0) * MM.s, 4);
+  g.fillStyle = '#ff5a14';
+  for (const p of lavaPools) g.fillRect(tx(p.x0), ty(p.level), (p.x1 - p.x0) * MM.s, Math.max(3, (p.level - groundHeightAt((p.x0 + p.x1) / 2)) * MM.s));
   MM.tx = tx; MM.ty = ty;
 }
 
@@ -1559,6 +1790,9 @@ function loadMap(id) {
       }
     }
   }
+  clearDrips();
+  buildLavaData();
+  buildLavaMeshes();
   vents = MAP.vents.map((d, i) => ({ ...d, i, state: 'idle', t: rand(1, 4) + i * 0.5, left: 0, glow: 0 }));
   ventVis = vents.map(makeVentVis);
   sock.position.y = groundHeightAt(10.5);
@@ -1670,7 +1904,7 @@ function frame(now) {
 }
 loadMap(MAP.id);
 requestAnimationFrame(frame);
-window.__skybucket = { game, S, cargo, get vents() { return vents; }, get map() { return MAP; }, keys, physicsStep, updateGame, spawnCargo, PDT, loadMap };
+window.__skybucket = { get lavaPools() { return lavaPools; }, get lavaCracks() { return lavaCracks; }, drips, game, S, cargo, get vents() { return vents; }, get map() { return MAP; }, keys, physicsStep, updateGame, spawnCargo, PDT, loadMap };
 })();
 </script>
 </body>

@@ -8,6 +8,7 @@ Pick a map on the setup screen before you launch.
 
 - **Badlands:** open hills with five vents. The farther vents throw richer ore. From shift 2 the wind picks up (watch the windsock and the HUD), pushing both the platform and loose cargo.
 - **The Long Cave:** a 280 m tunnel with rolling hills underneath and rock outcrops hanging from the roof, down to about 12 m of clearance. One rich vent sits at the far end. There's no wind, and the tank is bigger (260 instead of 120) for the long round trip.
+  - **Lava** fills the four dips in the cave floor, and nine glowing cracks in the roof drip blobs of lava every few seconds while you're nearby. A crack swells and brightens just before it lets go. Lava does triple damage. A crash onto a lava floor costs 3× the normal hull damage, a drip hit costs 24 (8 × 3), and sitting in a pool burns 36 hull per second (12 × 3). Ore that falls in melts. The multiplier and base values are `LAVA_MULT`, `DRIP_BASE` and `LAVA_BURN_BASE`. Pools and cracks are listed in the map's `lava` entry.
 
 The pause button (❚❚ in the top-right of the HUD, or `P`/`Esc`) has **Back to setup**, which takes you to the setup screen to change the map or settings. So does the game-over screen.
 
