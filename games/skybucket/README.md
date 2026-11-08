@@ -10,6 +10,8 @@ Pick a map on the setup screen before you launch.
 - **The Long Cave:** a 280 m tunnel with rolling hills underneath and rock outcrops hanging from the roof, down to about 12 m of clearance. One rich vent sits at the far end. There's no wind, and the tank is bigger (260 instead of 120) for the long round trip.
   - **Lava** fills the four dips in the cave floor, and nine glowing cracks in the roof drip blobs of lava every few seconds while you're nearby. A crack swells and brightens just before it lets go. Lava does triple damage. A crash onto a lava floor costs 3× the normal hull damage, a drip hit costs 24 (8 × 3), and sitting in a pool burns 36 hull per second (12 × 3). Ore that falls in melts. The multiplier and base values are `LAVA_MULT`, `DRIP_BASE` and `LAVA_BURN_BASE`. Pools and cracks are listed in the map's `lava` entry.
 
+- **Dry Springs:** the only vent has run dry. A pipe from the water tower by the pad pours water constantly. Hover under it to fill the bucket, fly out to the vent and tip the bucket so the water pours into the crater. The vent drinks it, turns from dusty brown to blue, and erupts once for every 10 drops (it holds up to 40). Water is made of slippery droplets that slosh and spill if you fly roughly, and it adds weight (0.12 kg a drop, about 4 kg for a full bucket). Water that lands anywhere else soaks into the ground. Unloading at the pad only takes the ore, so leftover water stays in the bucket for the next trip. Light wind from shift 2.
+
 The pause button (❚❚ in the top-right of the HUD, or `P`/`Esc`) has **Back to setup**, which takes you to the setup screen to change the map or settings. So does the game-over screen.
 
 ## Secrets (spoilers)

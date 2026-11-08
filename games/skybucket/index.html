@@ -249,6 +249,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         <span class="lbl">Map</span>
         <button class="ghost mapBtn" role="radio" aria-checked="true" data-map="badlands">Badlands</button>
         <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="cave">The Long Cave</button>
+        <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="springs">Dry Springs</button>
         <p class="fine" id="mapBlurb"></p>
       </div>
       <div class="zoom">
@@ -380,6 +381,26 @@ const MAPS = [
       { x: 285, y: -6, mix: [0.15, 0.4, 0.45], burst: [4, 6] },
     ],
   },
+  {
+    id: 'springs', name: 'Dry Springs',
+    blurb: 'The vent has run dry. Catch water from the pipe by the pad, then tip it into the vent to get it erupting again. Every 10 drops buys one eruption.',
+    intro: 'Fill the bucket under the water pipe, then pour it into the dry vent.',
+    world: { x0: -60, x1: 220 }, fuel: 140, wind: 0.6, sun: 1.35,
+    quotas: [120, 300, 600, 1000, 1500], quotaStep: 600,
+    // water pours from the pipe outlet; `dry` vents only erupt on water poured into them
+    pipe: { x: 16, y: 13.5, rate: 10 },
+    ground: [
+      [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1], [24, 1.5], [34, 3],
+      [46, 8], [56, 14], [64, 15], [72, 10], [84, 4], [96, 6], [106, 12], [112, 12.5], [120, 6], [132, -1], [140, -4],
+      [160, -4], [168, -1], [180, 6], [192, 16], [200, 40], [204, 90], [220, 90], [220, -60], [-70, -60],
+    ],
+    solids: [
+      { depth: 9, front: 3.2, pts: [[80, 24], [88, 21], [98, 22], [100, 26], [90, 29], [82, 28]] },
+    ],
+    vents: [
+      { x: 150, y: -4, mix: [0.6, 0.3, 0.1], burst: [3, 5], dry: true },
+    ],
+  },
 ];
 let MAP = MAPS.find(m => m.id === store.get('map', 'badlands')) || MAPS[0];
 let GROUND = MAP.ground;
@@ -388,7 +409,10 @@ const TYPES = [
   { name: 'Gem', r: 0.26, m: 0.45, value: 10, color: 0x5ff2ff, pitch: 1900 },
   { name: 'Crystal', r: 0.34, m: 1.0, value: 25, color: 0xff4fd8, pitch: 1250 },
   { name: 'Gold', r: 0.42, m: 2.2, value: 60, color: 0xffc93a, pitch: 620 },
+  // water drops ride in the bucket like cargo but are nearly frictionless, so they slosh and pour
+  { name: 'Water', r: 0.2, m: 0.12, value: 0, color: 0x58b8ff, pitch: 0, fric: 0.03, water: true },
 ];
+const WATER = 3, WATER_PER_BURST = 10, VENT_WATER_MAX = 40, MAX_WATER = 70;
 function quotaFor(lvl) {
   const q = MAP.quotas;
   return lvl <= q.length ? q[lvl - 1] : q[q.length - 1] + (lvl - q.length) * MAP.quotaStep;
@@ -752,9 +776,10 @@ function stepCargo(o, dt) {
       const jn = -(1 + e) * vn;
       o.vx += jn * nx; o.vy += jn * ny;
       const tx = -ny, ty = nx, vt = o.vx * tx + o.vy * ty;
-      const jt = clamp(-vt, -0.45 * jn, 0.45 * jn);
+      const mu = TYPES[o.t].fric ?? 0.45;
+      const jt = clamp(-vt, -mu * jn, mu * jn);
       o.vx += jt * tx; o.vy += jt * ty;
-      if (-vn > 2.5) events.clinks.push([o.t, -vn, o.x]);
+      if (-vn > 2.5 && o.t !== WATER) events.clinks.push([o.t, -vn, o.x]);
     }
     o.ground = true;
   }
@@ -792,10 +817,11 @@ function cargoVsShip(o, c, s) {
     const vt = rvx * tx + rvy * ty;
     const rt = rx * ty - ry * tx;
     const Kt = wsum + rt * rt / SHIP_I;
-    const jt = clamp(-vt / Kt, -0.6 * j, 0.6 * j);
+    const mu = TYPES[o.t].fric ?? 0.6;
+    const jt = clamp(-vt / Kt, -mu * j, mu * j);
     o.vx += jt * tx * wo; o.vy += jt * ty * wo;
     S.vx -= jt * tx * ws; S.vy -= jt * ty * ws; S.w -= rt * jt / SHIP_I;
-    if (-vn > 2.2) events.clinks.push([o.t, -vn, o.x]);
+    if (-vn > 2.2 && o.t !== WATER) events.clinks.push([o.t, -vn, o.x]);
   }
 }
 
@@ -820,10 +846,11 @@ function cargoVsCargo() {
       a.vx -= jn * nx * wa; a.vy -= jn * ny * wa;
       b.vx += jn * nx * wb; b.vy += jn * ny * wb;
       const tx = -ny, ty = nx, vt = (b.vx - a.vx) * tx + (b.vy - a.vy) * ty;
-      const jt = clamp(-vt / ws, -0.3 * jn, 0.3 * jn);
+      const mu = a.t === WATER || b.t === WATER ? 0.02 : 0.3;
+      const jt = clamp(-vt / ws, -mu * jn, mu * jn);
       a.vx -= jt * tx * wa; a.vy -= jt * ty * wa;
       b.vx += jt * tx * wb; b.vy += jt * ty * wb;
-      if (-vn > 3) events.clinks.push([a.t, -vn * 0.6, a.x]);
+      if (-vn > 3 && a.t !== WATER && b.t !== WATER) events.clinks.push([a.t, -vn * 0.6, a.x]);
     }
   }
 }
@@ -1023,6 +1050,28 @@ function buildLavaMeshes() {
     levelGroup.add(g);
   }
 }
+// water tower behind the flight line, its pipe running forward and turning down over the play plane
+function buildPipe(P) {
+  const pipeMat = new THREE.MeshStandardMaterial({ color: 0x6f8796, roughness: 0.5, metalness: 0.6 });
+  const tankMat = new THREE.MeshStandardMaterial({ color: 0x8aa0ad, roughness: 0.6, metalness: 0.4 });
+  const tx = P.x + 10, tz = -7, gy = groundHeightAt(tx);
+  const add = (m, x, y, z) => { m.position.set(x, y, z); m.castShadow = true; levelGroup.add(m); return m; };
+  add(new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 6, 24), tankMat), tx, P.y + 4.5, tz);
+  add(new THREE.Mesh(new THREE.ConeGeometry(3.4, 1.6, 24), tankMat), tx, P.y + 8.3, tz);
+  for (const [dx, dz] of [[-2.2, -2.2], [2.2, -2.2], [-2.2, 2.2], [2.2, 2.2]]) {
+    const h = P.y + 1.5 - gy;
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, h, 8), pipeMat), tx + dx, gy + h / 2, tz + dz);
+  }
+  const run = tx - P.x;
+  const a = add(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, run, 12), pipeMat), P.x + run / 2, P.y + 0.6, tz);
+  a.rotation.z = Math.PI / 2;
+  const b = add(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, -tz, 12), pipeMat), P.x, P.y + 0.6, tz / 2);
+  b.rotation.x = Math.PI / 2;
+  add(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.3, 0.9, 12), pipeMat), P.x, P.y + 0.2, 0);
+  add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 8), pipeMat), P.x, P.y + 0.6, 0);
+  const sign = add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.1, 0.1), new THREE.MeshStandardMaterial({ color: 0x2a6fa0, roughness: 0.7 })), tx, P.y + 4.5, tz + 3.25);
+  sign.castShadow = false;
+}
 function clearDrips() {
   for (const d of drips) scene.remove(d.mesh);
   drips.length = 0;
@@ -1092,6 +1141,7 @@ const sock = new THREE.Group();
 }
 
 // --- vents
+const DRY_COL = new THREE.Color(0x6b5440), WET_COL = new THREE.Color(0x4fc6ff);
 let ventVis = [];
 function makeVentVis(v) {
   const g = new THREE.Group();
@@ -1169,11 +1219,13 @@ const jetLights = [];
 scene.add(ship);
 
 // --- cargo meshes
-const cargoGeo = [new THREE.OctahedronGeometry(1, 0), new THREE.IcosahedronGeometry(1, 0), new THREE.DodecahedronGeometry(1, 0)];
+const cargoGeo = [new THREE.OctahedronGeometry(1, 0), new THREE.IcosahedronGeometry(1, 0), new THREE.DodecahedronGeometry(1, 0), new THREE.SphereGeometry(1, 10, 8)];
 const cargoMat = TYPES.map((t, i) => new THREE.MeshStandardMaterial({
   color: t.color, emissive: t.color, emissiveIntensity: i === 2 ? 0.18 : 0.35,
   roughness: i === 2 ? 0.3 : 0.15, metalness: i === 2 ? 0.85 : 0.1, flatShading: true, transparent: true,
 }));
+cargoMat[WATER] = new THREE.MeshStandardMaterial({ color: 0x58b8ff, emissive: 0x1a5a8a, emissiveIntensity: 0.5,
+  roughness: 0.1, metalness: 0, transparent: true, opacity: 0.85 });
 
 // ======================================================================
 //  Particles: one additive pool (fire, sparks) and one alpha pool (dust, smoke)
@@ -1338,10 +1390,18 @@ function forgeGold(o) {
   popText(`Lava-forged gold · ${o.value} cr`, o.x, o.y + 0.9);
   [880, 1109, 1319, 1760].forEach((f, i) => setTimeout(() => audio.tone(f, 0.22, 'triangle', 0.1), i * 70));
 }
+function spawnWater(px, py) {
+  const T = TYPES[WATER];
+  const mesh = new THREE.Mesh(cargoGeo[WATER], cargoMat[WATER]); // shared material: never disposed
+  mesh.scale.setScalar(T.r);
+  scene.add(mesh);
+  cargo.push({ t: WATER, r: T.r, m: T.m, value: 0, x: px + rand(-0.15, 0.15), y: py, vx: rand(-0.3, 0.3), vy: -2,
+    z: rand(-0.5, 0.5), rot: 0, rx: 0, mesh, ground: false, groundT: 0, soakT: 0, gone: false, inBucket: false, shared: true });
+}
 function removeCargo(o) {
   o.gone = true;
   scene.remove(o.mesh);
-  o.mesh.material.dispose();
+  if (!o.shared) o.mesh.material.dispose();
 }
 const delivering = [];
 function unload(load) {
@@ -1419,7 +1479,7 @@ function startGame() {
   Object.assign(game, { state: 'play', level: 1, delivered: 0, lives: 3, time: 0 });
   clearDrips();
   lavaCracks.forEach(k => { k.state = 'idle'; k.t = rand(1, 6); k.bead.scale.setScalar(0.001); });
-  vents.forEach((v, i) => { v.state = 'idle'; v.t = rand(1, 3) + i; v.left = 0; });
+  vents.forEach((v, i) => { v.state = 'idle'; v.t = rand(1, 3) + i; v.left = 0; v.water = 0; });
   resetShip();
   ship.visible = true;
   $('titleScreen').hidden = true; $('overScreen').hidden = true; $('pauseScreen').hidden = true;
@@ -1525,13 +1585,16 @@ function localToBucket(o) {
 
 function updateGame(dt) {
   // vents
-  const freeCount = cargo.reduce((n, o) => n + (o.gone ? 0 : 1), 0);
+  const freeCount = cargo.reduce((n, o) => n + (o.gone || o.t === WATER ? 0 : 1), 0);
   vents.forEach((v, i) => {
     const vis = ventVis[i];
     v.t -= dt;
     if (v.state === 'idle') {
       v.glow = lerp(v.glow, 0.15, dt * 2);
-      if (v.t <= 0) {
+      if (v.dry && v.water < WATER_PER_BURST) {
+        v.t = Math.max(v.t, 0.5); // dormant until enough water is poured in
+        if (Math.random() < dt * 1.5) smokeP(v.x + rand(-1, 1), v.y + 0.2, rand(-0.8, 0.8), rand(-0.3, 0.3), rand(0.4, 1), 0, rand(1, 2), 0.6, 1.8, [0.6, 0.52, 0.44], 0.25);
+      } else if (v.t <= 0) {
         if (Math.abs(S.x - v.x) < 90 && freeCount < MAX_CARGO) { v.state = 'warn'; v.t = 1.8; }
         else v.t = 1.5;
       }
@@ -1539,17 +1602,26 @@ function updateGame(dt) {
       v.glow = 0.5 + 0.5 * Math.sin(game.time * 22);
       if (Math.random() < dt * 30) smokeP(v.x + rand(-1, 1), v.y + 0.3, rand(-0.8, 0.8), rand(-0.5, 0.5), rand(2, 4), 0, rand(0.8, 1.6), 0.8, 2.4, [0.55, 0.45, 0.42], 0.45);
       if (Math.abs(S.x - v.x) < 40 && Math.random() < dt * 6) audio.thud(0.05, 60, 0.3);
-      if (v.t <= 0) { v.state = 'erupt'; v.left = Math.round(rand(v.burst[0], v.burst[1])); v.t = 0; audio.thud(clamp(0.5 - Math.abs(S.x - v.x) / 120, 0, 0.5), 80, 0.6); }
+      if (v.t <= 0) { v.state = 'erupt'; v.left = Math.round(rand(v.burst[0], v.burst[1])); v.t = 0;
+        if (v.dry) v.water -= WATER_PER_BURST; audio.thud(clamp(0.5 - Math.abs(S.x - v.x) / 120, 0, 0.5), 80, 0.6); }
     } else if (v.state === 'erupt') {
       v.glow = 1;
       if (v.t <= 0) {
         spawnCargo(v); v.left--; v.t = 0.17;
         for (let k = 0; k < 6; k++) fireP(v.x + rand(-0.6, 0.6), v.y + 0.4, rand(-0.6, 0.6), rand(-1, 1), rand(6, 10), 0, rand(0.3, 0.6), 0.8, 0.2, true);
-        if (v.left <= 0) { v.state = 'idle'; v.t = rand(6.5, 10.5); }
+        if (v.left <= 0) { v.state = 'idle'; v.t = v.dry ? rand(2.5, 4) : rand(6.5, 10.5); }
       }
     }
     vis.disc.material.opacity = 0.25 + v.glow * 0.6;
     vis.light.intensity = v.glow * 3.2;
+    if (v.dry) {
+      // dusty brown when dry, filling to blue as water is poured in
+      const f = clamp(v.water / WATER_PER_BURST, 0, 1);
+      vis.disc.material.color.copy(DRY_COL).lerp(WET_COL, f);
+      vis.disc.material.opacity = Math.max(vis.disc.material.opacity, 0.45 + f * 0.4);
+      vis.light.color.copy(v.water >= WATER_PER_BURST && v.state !== 'idle' ? vis.col : WET_COL);
+      if (v.state === 'idle') vis.light.intensity = f * 1.6;
+    }
   });
 
   // lava: cracks swell and drop drips near the platform; pools glow and spit embers
@@ -1602,11 +1674,47 @@ function updateGame(dt) {
     });
   }
 
+  // the pipe pours whenever there's room for more water in the world
+  if (MAP.pipe) {
+    const P = MAP.pipe;
+    game.pipeAcc = (game.pipeAcc || 0) + dt * P.rate;
+    let water = 0;
+    for (const o of cargo) if (!o.gone && o.t === WATER) water++;
+    while (game.pipeAcc >= 1) { game.pipeAcc--; if (water++ < MAX_WATER) spawnWater(P.x, P.y - 0.4); }
+    if (Math.random() < dt * 14) smokeP(P.x + rand(-0.2, 0.2), P.y - 0.6, rand(-0.3, 0.3), rand(-0.3, 0.3), -rand(3, 6), 0, rand(0.3, 0.6), 0.3, 0.8, [0.75, 0.88, 1], 0.35, 4);
+  }
+
   // cargo bookkeeping
-  let bucketValue = 0, bucketMass = 0, bucketCount = 0;
+  let bucketValue = 0, bucketMass = 0, bucketCount = 0, bucketWater = 0;
   for (const o of cargo) {
     if (o.gone) continue;
     o.inBucket = S.alive && localToBucket(o);
+    if (o.t === WATER) {
+      if (o.inBucket) { bucketMass += o.m; bucketWater++; }
+      // poured into a dry vent: the vent drinks it
+      let drunk = false;
+      for (const v of vents) {
+        if (!v.dry || Math.abs(o.x - v.x) > 3.2 || o.y > v.y + 2.2) continue;
+        const before = v.water;
+        v.water = Math.min(VENT_WATER_MAX, v.water + 1);
+        smokeP(o.x, v.y + 0.4, rand(-0.6, 0.6), rand(-0.5, 0.5), rand(1.5, 3), 0, rand(0.8, 1.4), 0.5, 2, [0.92, 0.95, 1], 0.5);
+        if (before < WATER_PER_BURST && v.water >= WATER_PER_BURST) {
+          popText('Vent primed', v.x, v.y + 3);
+          [392, 523, 659].forEach((f, i) => setTimeout(() => audio.tone(f, 0.25, 'sine', 0.12), i * 90));
+        } else if (Math.random() < 0.25) audio.tone(rand(500, 800), 0.08, 'sine', 0.04, 0.6);
+        drunk = true;
+        break;
+      }
+      // anywhere else, water soaks into the ground
+      if (!drunk && o.ground && !o.inBucket) o.soakT += dt;
+      if (drunk || o.soakT > 0.5 || o.y < -45 || (lavaPools.length && lavaAt(o.x, o.y - o.r))) {
+        if (!drunk) smokeP(o.x, o.y, o.z, 0, 0.6, 0, 0.6, 0.3, 0.9, [0.55, 0.7, 0.85], 0.35);
+        removeCargo(o);
+        continue;
+      }
+      o.mesh.position.set(o.x, o.y, o.z);
+      continue;
+    }
     if (o.inBucket) { bucketValue += o.value; bucketMass += o.m; bucketCount++; }
     const speed = Math.hypot(o.vx, o.vy);
     if (o.ground && !o.inBucket && speed < 1.5) o.groundT += dt; else o.groundT = Math.max(0, o.groundT - dt * 2);
@@ -1645,7 +1753,7 @@ function updateGame(dt) {
     S.fuel = Math.min(MAP.fuel, S.fuel + 28 * dt);
     S.hull = Math.min(100, S.hull + 6 * dt);
     if (S.landedT > 0.35) {
-      const load = cargo.filter(o => !o.gone && o.inBucket);
+      const load = cargo.filter(o => !o.gone && o.inBucket && o.t !== WATER);
       if (load.length) { unload(load); bucketValue = 0; bucketMass = 0; bucketCount = 0; }
     }
   } else S.landedT = 0;
@@ -1676,7 +1784,7 @@ function updateGame(dt) {
     if (t >= 1) { scene.remove(d.mesh); d.mesh.material.dispose(); delivering.splice(i, 1); sparkBurst(SILO_MOUTH.x, SILO_MOUTH.y, d.color, 6, 3); }
   }
 
-  return { bucketValue, bucketMass, bucketCount, onPad };
+  return { bucketValue, bucketMass, bucketCount, bucketWater, onPad };
 }
 
 // ======================================================================
@@ -1818,7 +1926,8 @@ function loadMap(id) {
   clearDrips();
   buildLavaData();
   buildLavaMeshes();
-  vents = MAP.vents.map((d, i) => ({ ...d, i, state: 'idle', t: rand(1, 4) + i * 0.5, left: 0, glow: 0 }));
+  vents = MAP.vents.map((d, i) => ({ ...d, i, state: 'idle', t: rand(1, 4) + i * 0.5, left: 0, glow: 0, water: 0 }));
+  if (MAP.pipe) buildPipe(MAP.pipe);
   ventVis = vents.map(makeVentVis);
   sock.position.y = groundHeightAt(10.5);
   sun.intensity = MAP.sun;
@@ -1853,7 +1962,10 @@ function updateHud(info) {
   $('quotaBar').style.transform = `scaleX(${clamp((game.delivered - q0) / (q - q0), 0, 1)})`;
   $('quotaTxt').textContent = `${game.delivered} / ${q} cr`;
   const need = Math.max(0, q - game.delivered);
-  $('bucketCount').textContent = info.bucketCount ? `${info.bucketCount} ${info.bucketCount === 1 ? 'piece' : 'pieces'}` : 'empty';
+  const parts = [];
+  if (info.bucketCount) parts.push(`${info.bucketCount} ${info.bucketCount === 1 ? 'piece' : 'pieces'}`);
+  if (info.bucketWater) parts.push(`${info.bucketWater} water`);
+  $('bucketCount').textContent = parts.length ? parts.join(' · ') : 'empty';
   $('valBar').style.transform = `scaleX(${need ? Math.min(1, info.bucketValue / need) : 1})`;
   $('valTxt').textContent = `${info.bucketValue} / ${need} cr`;
   $('valWrap').classList.toggle('ready', info.bucketValue > 0 && info.bucketValue >= need);
@@ -1873,11 +1985,12 @@ function updateHud(info) {
   g.clearRect(0, 0, mini.width, mini.height);
   g.drawImage(mmBase, 0, 0);
   vents.forEach(v => {
-    g.fillStyle = v.state === 'idle' ? 'rgba(255,140,80,0.6)' : '#ff5a3c';
+    g.fillStyle = v.dry && v.state === 'idle' ? (v.water >= WATER_PER_BURST ? '#4fc6ff' : 'rgba(150,120,90,0.8)')
+      : v.state === 'idle' ? 'rgba(255,140,80,0.6)' : '#ff5a3c';
     g.beginPath(); g.arc(MM.tx(v.x), MM.ty(v.y) - 3, v.state === 'idle' ? 3 : 5, 0, Math.PI * 2); g.fill();
   });
   for (const o of cargo) {
-    if (o.gone) continue;
+    if (o.gone || o.t === WATER) continue;
     g.fillStyle = '#' + TYPES[o.t].color.toString(16).padStart(6, '0');
     g.fillRect(MM.tx(o.x) - 1.5, MM.ty(o.y) - 1.5, 3, 3);
   }
@@ -1907,7 +2020,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  let info = { bucketValue: 0, bucketMass: 0, bucketCount: 0, onPad: false };
+  let info = { bucketValue: 0, bucketMass: 0, bucketCount: 0, bucketWater: 0, onPad: false };
   if (game.state !== 'paused') {
     acc += dt;
     let n = 0;
