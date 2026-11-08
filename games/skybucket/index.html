@@ -250,6 +250,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         <button class="ghost mapBtn" role="radio" aria-checked="true" data-map="badlands">Badlands</button>
         <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="cave">The Long Cave</button>
         <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="springs">Dry Springs</button>
+        <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="mine">Falling Doors</button>
         <p class="fine" id="mapBlurb"></p>
       </div>
       <div class="zoom">
@@ -401,6 +402,33 @@ const MAPS = [
       { x: 150, y: -4, mix: [0.6, 0.3, 0.1], burst: [3, 5], dry: true },
     ],
   },
+  {
+    id: 'mine', name: 'Falling Doors',
+    blurb: 'A mineshaft with steel doors slotted in its ceiling. Once you are inside they slam down one after another, so race them to the vault. The exit opens when your bucket holds 50 cr of ore.',
+    intro: 'Race the falling doors to the vault. The exit opens with 50 cr in the bucket.',
+    world: { x0: -60, x1: 270 }, fuel: 180, wind: 0, sun: 1.1,
+    quotas: [100, 250, 500, 850, 1300], quotaStep: 500,
+    cave: { x0: 38, x1: 212, y0: -32, y1: 4 },
+    // doors[0] seals the entrance behind you; the rest fall in sequence, `interval` s apart
+    doors: { xs: [56, 85, 105, 125, 145], trigger: 62, resetX: 30, first: 4.6, interval: 3.4, exit: { x: 187, need: 50 } },
+    ground: [
+      [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1], [22, 2], [28, 1],
+      [40, -5], [52, -11], [64, -17], [72, -20], [85, -20], [97, -19.5], [110, -20], [122, -20.5], [135, -20],
+      [148, -20], [154, -23], [162, -26], [176, -26], [184, -23], [190, -22], [204, -22], [206, -10], [207, 4],
+      [230, 6], [240, 30], [244, 90], [270, 90], [270, -60], [-70, -60],
+    ],
+    solids: [
+      // the rock above the shaft: its top is the surface you fly home over, its underside the shaft ceiling
+      { depth: 18, front: 4, roof: true, pts: [
+        [40, 6.5], [60, 7], [100, 6], [140, 7], [170, 6], [190, 5], [190, -11], [184, -11], [180, -6], [170, -5],
+        [160, -6], [154, -9], [148, -8], [135, -8], [122, -8.5], [110, -8], [97, -7.5], [85, -8], [72, -8],
+        [64, -5], [52, 1], [44, 5],
+      ] },
+    ],
+    vents: [
+      { x: 169, y: -26, mix: [0.7, 0.3, 0], burst: [3, 5] },
+    ],
+  },
 ];
 let MAP = MAPS.find(m => m.id === store.get('map', 'badlands')) || MAPS[0];
 let GROUND = MAP.ground;
@@ -420,6 +448,7 @@ function quotaFor(lvl) {
 
 // ---------- static collision geometry ----------
 const SEGS = [], TVERTS = [];
+const DYN_SEGS = [], DYN_VERTS = []; // door edges and corners, updated in place as doors move
 function addPoly(pts) {
   let area = 0;
   for (let i = 0; i < pts.length; i++) {
@@ -462,6 +491,11 @@ function querySegs(minx, maxx, miny, maxy, out) {
       s.stamp = stamp;
       if (s.maxx >= minx && s.minx <= maxx && s.maxy >= miny && s.miny <= maxy) out.push(s);
     }
+  }
+  // moving pieces (doors) aren't in the grid
+  for (let i = 0; i < DYN_SEGS.length; i++) {
+    const s = DYN_SEGS[i];
+    if (s.maxx >= minx && s.minx <= maxx && s.maxy >= miny && s.miny <= maxy) out.push(s);
   }
   return out;
 }
@@ -519,6 +553,105 @@ function buildLavaData() {
     lavaPools.push({ x0, x1, level: d.level });
   }
   for (const x of L.cracks) lavaCracks.push({ x, y: roofAt(x), state: 'idle', t: rand(1, 6) });
+}
+
+// ---------- falling doors (maps with a `doors` entry) ----------
+// Door states: up (in its ceiling slot) -> warn (shaking) -> falling -> down -> rising -> up.
+const DOOR_W = 1.2, DOOR_EMBED = 3, DOOR_WARN = 0.7, DOOR_JAM = 6, DOOR_PEEK = 0.25;
+const mine = { doors: [], exit: null, armed: true, t: 0 };
+function doorSegs(d) {
+  // four edges plus the two bottom corners, shared with the collision code
+  const mk = (nx, ny) => ({ ax: 0, ay: 0, bx: 0, by: 0, dx: 0, dy: 0, l2: 1, nx, ny, minx: 0, maxx: 0, miny: 0, maxy: 0, stamp: 0, door: d });
+  d.segs = [mk(0, -1), mk(1, 0), mk(0, 1), mk(-1, 0)];
+  d.verts = [{ x: 0, y: 0, door: d }, { x: 0, y: 0, door: d }];
+  DYN_SEGS.push(...d.segs); DYN_VERTS.push(...d.verts);
+  placeDoor(d);
+}
+function placeDoor(d) {
+  const x0 = d.x - DOOR_W / 2, x1 = d.x + DOOR_W / 2, y0 = d.y, y1 = d.y + d.h;
+  const set = (sg, ax, ay, bx, by) => {
+    Object.assign(sg, { ax, ay, bx, by, dx: bx - ax, dy: by - ay, l2: (bx - ax) ** 2 + (by - ay) ** 2,
+      minx: Math.min(ax, bx), maxx: Math.max(ax, bx), miny: Math.min(ay, by), maxy: Math.max(ay, by) });
+  };
+  set(d.segs[0], x1, y0, x0, y0); set(d.segs[1], x1, y1, x1, y0); set(d.segs[2], x0, y1, x1, y1); set(d.segs[3], x0, y0, x0, y1);
+  d.verts[0].x = x0; d.verts[0].y = y0; d.verts[1].x = x1; d.verts[1].y = y0;
+}
+function makeDoor(x, exit) {
+  const floor = Math.max(groundHeightAt(x - DOOR_W / 2), groundHeightAt(x), groundHeightAt(x + DOOR_W / 2));
+  const ceil = roofAt(x);
+  const d = { x, floor, upY: ceil - DOOR_PEEK, h: ceil - floor + DOOR_EMBED, exit: !!exit, state: exit ? 'down' : 'up',
+    vy: 0, fallAt: null, fallWhenPassed: false, downT: 0, hitShip: false, crushed: false, shake: 0 };
+  d.y = exit ? floor : d.upY;
+  doorSegs(d);
+  return d;
+}
+function buildDoorsData() {
+  DYN_SEGS.length = 0; DYN_VERTS.length = 0;
+  mine.doors = []; mine.exit = null; mine.armed = true;
+  const D = MAP.doors;
+  if (!D) return;
+  mine.doors = D.xs.map(x => makeDoor(x, false));
+  mine.exit = makeDoor(D.exit.x, true);
+}
+function resetMine() {
+  if (!MAP.doors) return;
+  for (const d of mine.doors) { Object.assign(d, { state: 'up', y: d.upY, vy: 0, fallAt: null, fallWhenPassed: false, downT: 0, crushed: false }); placeDoor(d); }
+  const e = mine.exit;
+  Object.assign(e, { state: 'down', y: e.floor, vy: 0 }); placeDoor(e);
+  mine.armed = true;
+}
+function scheduleDoors(from, t) {
+  const D = MAP.doors;
+  for (let j = from; j < mine.doors.length; j++) {
+    const d = mine.doors[j];
+    if (d.state === 'up' || d.state === 'warn') { d.fallAt = t + (j - from) * D.interval; d.fallWhenPassed = false; }
+  }
+}
+// called every physics step: moves doors and handles crushes
+function stepDoors(dt) {
+  mine.t += dt;
+  for (const d of mine.doors) {
+    if (d.state === 'up' && d.fallAt !== null && mine.t >= d.fallAt - DOOR_WARN) d.state = 'warn';
+    if (d.state === 'warn' && mine.t >= d.fallAt) { d.state = 'falling'; d.vy = 2; d.fallAt = null; }
+    if (d.state === 'falling') {
+      if (d.hitShip) {
+        // landed on the platform: crush once, then rest on it until it moves away
+        if (!d.crushed && game.state === 'play' && S.alive) { d.crushed = true; damageShip(Math.max(10, (d.vy - 1) * 7)); }
+        d.vy = 0;
+      } else {
+        d.vy = Math.min(16, d.vy + G * 1.6 * dt);
+        d.y -= d.vy * dt;
+        if (d.y <= d.floor) {
+          d.y = d.floor; d.state = 'down'; d.downT = 0;
+          // shut in front of you: hold the rest of the chain until you're through this one
+          const i = mine.doors.indexOf(d);
+          if (i > 0 && S.x < d.x) for (let j = i + 1; j < mine.doors.length; j++) {
+            const n = mine.doors[j];
+            if (n.state === 'up' || n.state === 'warn') { n.state = 'up'; n.fallAt = null; }
+          }
+          events.doorSlam = Math.max(events.doorSlam || 0, d.vy);
+          events.doorSlamX = d.x;
+        }
+        // ore under a falling door is crushed
+        for (const o of cargo) {
+          if (!o.gone && Math.abs(o.x - d.x) < DOOR_W / 2 + o.r && o.y < d.y + 0.2 && o.y > d.y - o.r - 0.2) o.crush = true;
+        }
+      }
+      placeDoor(d);
+    } else if (d.state === 'rising') {
+      d.y = Math.min(d.upY, d.y + 4 * dt);
+      if (d.y >= d.upY) { d.state = 'up'; d.fallWhenPassed = true; }
+      placeDoor(d);
+    }
+    d.hitShip = false;
+  }
+  const e = mine.exit;
+  if (e && e.state === 'rising') {
+    e.y = Math.min(e.upY, e.y + 3 * dt);
+    if (e.y >= e.upY) e.state = 'up';
+    placeDoor(e);
+  }
+  if (e) e.hitShip = false;
 }
 
 function raycast(ox, oy, dx, dy, maxT) {
@@ -692,12 +825,14 @@ function shipVsTerrain() {
       if (d > 1e-6) { nx /= d; ny /= d; } else { nx = g.nx; ny = g.ny; }
       if (nx * g.nx + ny * g.ny < -0.2) { nx = g.nx; ny = g.ny; pen = PR + d; } else pen = PR - d;
       const ct = C[n++]; ct.x = qx; ct.y = qy; ct.nx = nx; ct.ny = ny; ct.pen = pen; ct.foot = p.foot || 0;
+      if (g.door) g.door.hitShip = true;
       if (n >= C.length) break;
     }
   }
   // terrain corners poking into the hull
-  for (let i = 0; i < TVERTS.length && n < C.length; i++) {
-    const v = TVERTS[i];
+  const NV = TVERTS.length + DYN_VERTS.length;
+  for (let i = 0; i < NV && n < C.length; i++) {
+    const v = i < TVERTS.length ? TVERTS[i] : DYN_VERTS[i - TVERTS.length];
     const dx = v.x - S.x, dy = v.y - S.y;
     if (dx * dx + dy * dy > 16) continue;
     const lx = dx * c + dy * s, ly = -dx * s + dy * c;
@@ -709,6 +844,7 @@ function shipVsTerrain() {
       if (d2 >= VR * VR || d2 < 1e-12) continue;
       const d = Math.sqrt(d2); nx /= d; ny /= d;
       const ct = C[n++]; ct.x = v.x; ct.y = v.y; ct.nx = nx * c - ny * s; ct.ny = nx * s + ny * c; ct.pen = VR - d; ct.foot = 0;
+      if (v.door) v.door.hitShip = true;
       if (n >= C.length) break;
     }
   }
@@ -900,6 +1036,7 @@ function stepDrips(dt) {
 function physicsStep(dt) {
   game.time += dt;
   game.wind = windAt(game.time);
+  if (mine.doors.length) stepDoors(dt);
   if (S.alive) stepShip(dt);
   if (S.alive && lavaPools.length) shipVsLava(dt);
   if (drips.length) stepDrips(dt);
@@ -1071,6 +1208,39 @@ function buildPipe(P) {
   add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 8), pipeMat), P.x, P.y + 0.6, 0);
   const sign = add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.1, 0.1), new THREE.MeshStandardMaterial({ color: 0x2a6fa0, roughness: 0.7 })), tx, P.y + 4.5, tz + 3.25);
   sign.castShadow = false;
+}
+const doorTex = canvasTex(64, 512, (g, w, h) => {
+  g.fillStyle = '#5d646c'; g.fillRect(0, 0, w, h);
+  for (let y = 0; y < h; y += 32) { g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(0, y, w, 2); }
+  for (let i = 0; i < 300; i++) { g.fillStyle = `rgba(${120 + Math.random() * 60 | 0},70,40,${Math.random() * 0.25})`; g.fillRect(Math.random() * w, Math.random() * h, rand(2, 8), rand(2, 10)); }
+  // hazard stripes along the bottom edge
+  for (let i = -4; i < 8; i++) {
+    g.fillStyle = i % 2 ? '#1b1b1b' : '#f2b31b';
+    g.beginPath(); g.moveTo(i * 12, h); g.lineTo(i * 12 + 12, h); g.lineTo(i * 12 + 36, h - 30); g.lineTo(i * 12 + 24, h - 30); g.fill();
+  }
+});
+const doorMat = new THREE.MeshStandardMaterial({ map: doorTex, roughness: 0.6, metalness: 0.5 });
+const exitLampMat = new THREE.MeshBasicMaterial({ color: 0xff3b2e });
+let exitLamp = null;
+function buildDoorMeshes() {
+  exitLamp = null;
+  for (const d of [...mine.doors, mine.exit].filter(Boolean)) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W, d.h, 7.2), doorMat);
+    m.castShadow = true; m.receiveShadow = true;
+    levelGroup.add(m);
+    d.mesh = m;
+    // slot rails in the ceiling so you can see where the doors are waiting
+    for (const sx of [-1, 1]) {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 7.4), darkMetal);
+      rail.position.set(d.x + sx * (DOOR_W / 2 + 0.15), d.upY + DOOR_PEEK - 0.2, 0.2);
+      levelGroup.add(rail);
+    }
+    if (d.exit) {
+      exitLamp = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 8), exitLampMat);
+      exitLamp.position.set(d.x - 1.6, d.upY - 0.5, 3.4);
+      levelGroup.add(exitLamp);
+    }
+  }
 }
 function clearDrips() {
   for (const d of drips) scene.remove(d.mesh);
@@ -1469,6 +1639,7 @@ function strand() {
 function respawnOrEnd() {
   if (game.lives <= 0) return gameOver();
   resetShip();
+  resetMine();
   ship.visible = true;
 }
 
@@ -1479,6 +1650,7 @@ function startGame() {
   Object.assign(game, { state: 'play', level: 1, delivered: 0, lives: 3, time: 0 });
   clearDrips();
   lavaCracks.forEach(k => { k.state = 'idle'; k.t = rand(1, 6); k.bead.scale.setScalar(0.001); });
+  resetMine();
   vents.forEach((v, i) => { v.state = 'idle'; v.t = rand(1, 3) + i; v.left = 0; v.water = 0; });
   resetShip();
   ship.visible = true;
@@ -1577,6 +1749,58 @@ $('gyroBtn').onclick = () => setGyro(!game.gyro);
 $('soundBtn').onclick = () => { audio.unlock(); setSound(!game.sound); };
 setScheme(game.scheme); setGyro(game.gyro); setSound(game.sound); setZoom(game.zoom); renderBest();
 
+function updateMine(dt) {
+  const D = MAP.doors, doors = mine.doors, e = mine.exit;
+  // back near the pad: everything resets for the next run
+  if (S.x < D.resetX && !mine.armed) resetMine();
+  // through the entrance: seal it behind you and start the chain
+  if (mine.armed && S.alive && game.state === 'play' && S.x > D.trigger && S.y < 0) {
+    mine.armed = false;
+    doors[0].fallAt = mine.t + 0.4;
+    scheduleDoors(1, mine.t + D.first);
+    banner('', 'The doors are coming down. Get to the vault!', 2.2);
+  }
+  doors.forEach((d, i) => {
+    // a door you got stuck behind jams for a while, then lifts; it drops again once you're through
+    if (d.state === 'down') {
+      d.downT += dt;
+      if (S.alive && S.x < d.x && (i === 0 || S.x > doors[i - 1].x) && d.downT > DOOR_JAM) {
+        d.state = 'rising';
+        for (let j = i + 1; j < doors.length; j++) if (doors[j].state === 'up' || doors[j].state === 'warn') { doors[j].state = 'up'; doors[j].fallAt = null; }
+      } else if (S.alive && S.x < d.x && S.x > d.x - 14 && d.downT > 1.2 && d.downT < 1.2 + dt * 1.5 && i > 0) {
+        banner('', `Too slow. That door lifts again in ${DOOR_JAM - 1} seconds.`, 2);
+      }
+    }
+    if (d.state === 'up' && d.fallWhenPassed && S.x > d.x + 3.6) {
+      d.fallWhenPassed = false;
+      d.fallAt = mine.t + 0.2;
+      scheduleDoors(i + 1, mine.t + D.interval);
+    }
+    if (d.state === 'warn') {
+      if (Math.random() < dt * 25) smokeP(d.x + rand(-0.8, 0.8), d.upY - 0.1, rand(-3, 3.5), rand(-0.4, 0.4), -rand(0.5, 2), 0, rand(0.6, 1.2), 0.4, 1.5, [0.55, 0.48, 0.42], 0.5, 3);
+      if (Math.abs(S.x - d.x) < 40 && Math.random() < dt * 10) audio.thud(0.06, 300, 0.12);
+    }
+  });
+  // the exit lifts once the bucket holds enough ore
+  if (e && e.state === 'down' && S.alive && S.x > e.x - 40 && S.x < e.x && S.y < e.upY) {
+    let v = 0;
+    for (const o of cargo) if (!o.gone && o.inBucket && o.t !== WATER) v += o.value;
+    if (v >= D.exit.need) {
+      e.state = 'rising';
+      popText('Exit open', e.x, e.floor + 6);
+      banner('', 'Exit open. Climb the shaft and fly home over the top.', 2.4);
+      [523, 659, 784].forEach((f, i) => setTimeout(() => audio.tone(f, 0.22, 'triangle', 0.12), i * 100));
+    }
+  }
+  if (events.doorSlam) {
+    const near = clamp(1 - Math.abs(S.x - events.doorSlamX) / 60, 0, 1);
+    audio.thud(0.15 + near * 0.6, 120, 0.7);
+    game.shake = Math.max(game.shake, near * 0.6);
+    for (let k = 0; k < 16; k++) smokeP(events.doorSlamX + rand(-3, 3), groundHeightAt(events.doorSlamX) + 0.3, rand(-3, 3.5), rand(-4, 4), rand(0.3, 1.5), 0, rand(0.8, 1.6), 0.6, 2.6, [0.6, 0.52, 0.45], 0.5, 0.3);
+    events.doorSlam = 0;
+  }
+}
+
 function localToBucket(o) {
   const c = Math.cos(S.a), s = Math.sin(S.a), dx = o.x - S.x, dy = o.y - S.y;
   const lx = dx * c + dy * s, ly = -dx * s + dy * c;
@@ -1674,6 +1898,8 @@ function updateGame(dt) {
     });
   }
 
+  if (mine.doors.length) updateMine(dt);
+
   // the pipe pours whenever there's room for more water in the world
   if (MAP.pipe) {
     const P = MAP.pipe;
@@ -1718,6 +1944,11 @@ function updateGame(dt) {
     if (o.inBucket) { bucketValue += o.value; bucketMass += o.m; bucketCount++; }
     const speed = Math.hypot(o.vx, o.vy);
     if (o.ground && !o.inBucket && speed < 1.5) o.groundT += dt; else o.groundT = Math.max(0, o.groundT - dt * 2);
+    if (o.crush) {
+      sparkBurst(o.x, o.y, TYPES[o.t].color, 14, 5);
+      removeCargo(o);
+      continue;
+    }
     if (lavaPools.length && lavaAt(o.x, o.y - o.r)) {
       sparkBurst(o.x, o.y, 0xff7a2e, 12, 4);
       smokeP(o.x, o.y, o.z, 0, 2, 0, 1.2, 0.5, 2, [0.35, 0.3, 0.3], 0.6);
@@ -1822,6 +2053,14 @@ function updateVisuals(dt, info) {
     }
   });
 
+  // doors
+  for (const d of mine.doors.concat(mine.exit || [])) {
+    if (!d.mesh) continue;
+    const shake = d.state === 'warn' ? rand(-0.06, 0.06) : 0;
+    d.mesh.position.set(d.x + shake, d.y + d.h / 2 + (d.state === 'warn' ? -0.15 : 0), 0.2);
+  }
+  if (exitLamp) exitLampMat.color.setHex(mine.exit.state === 'down' ? (Math.sin(game.time * 5) > 0 ? 0xff3b2e : 0x5a1410) : 0x5dff7a);
+
   // windsock
   const ws = game.wind;
   const holder = sock.userData.holder;
@@ -1906,10 +2145,10 @@ function loadMap(id) {
   MAP.solids.forEach(sd => polyMesh(sd.pts, sd.depth, sd.front, !sd.roof));
   if (MAP.cave) {
     // back wall so the tunnel reads as enclosed rock rather than open sky
-    const w = MAP.cave.x1 - MAP.cave.x0;
-    caveWallTex.repeat.set(w / 24, 130 / 24);
-    const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, 130), caveWallMat);
-    wall.position.set(MAP.cave.x0 + w / 2, 35, -10);
+    const w = MAP.cave.x1 - MAP.cave.x0, y0 = MAP.cave.y0 ?? -30, y1 = MAP.cave.y1 ?? 100, h = y1 - y0;
+    caveWallTex.repeat.set(w / 24, h / 24);
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, h), caveWallMat);
+    wall.position.set(MAP.cave.x0 + w / 2, y0 + h / 2, -10);
     wall.receiveShadow = true;
     levelGroup.add(wall);
     // glowing crystal clusters along the floor, behind the flight line
@@ -1926,6 +2165,8 @@ function loadMap(id) {
   clearDrips();
   buildLavaData();
   buildLavaMeshes();
+  buildDoorsData();
+  buildDoorMeshes();
   vents = MAP.vents.map((d, i) => ({ ...d, i, state: 'idle', t: rand(1, 4) + i * 0.5, left: 0, glow: 0, water: 0 }));
   if (MAP.pipe) buildPipe(MAP.pipe);
   ventVis = vents.map(makeVentVis);
@@ -1989,6 +2230,8 @@ function updateHud(info) {
       : v.state === 'idle' ? 'rgba(255,140,80,0.6)' : '#ff5a3c';
     g.beginPath(); g.arc(MM.tx(v.x), MM.ty(v.y) - 3, v.state === 'idle' ? 3 : 5, 0, Math.PI * 2); g.fill();
   });
+  g.fillStyle = '#f2b31b';
+  for (const d of mine.doors.concat(mine.exit || [])) if (d.state !== 'up') g.fillRect(MM.tx(d.x) - 1.5, MM.ty(d.y + d.h - DOOR_EMBED), 3, (d.h - DOOR_EMBED) * MM.s);
   for (const o of cargo) {
     if (o.gone || o.t === WATER) continue;
     g.fillStyle = '#' + TYPES[o.t].color.toString(16).padStart(6, '0');
@@ -2042,7 +2285,7 @@ function frame(now) {
 }
 loadMap(MAP.id);
 requestAnimationFrame(frame);
-window.__skybucket = { get lavaPools() { return lavaPools; }, get lavaCracks() { return lavaCracks; }, drips, game, S, cargo, get vents() { return vents; }, get map() { return MAP; }, keys, physicsStep, updateGame, spawnCargo, PDT, loadMap };
+window.__skybucket = { mine, get lavaPools() { return lavaPools; }, get lavaCracks() { return lavaCracks; }, drips, game, S, cargo, get vents() { return vents; }, get map() { return MAP; }, keys, physicsStep, updateGame, spawnCargo, PDT, loadMap };
 })();
 </script>
 </body>
