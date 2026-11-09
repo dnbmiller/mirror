@@ -6,7 +6,7 @@ This document records how Skybucket came together and how it works. It covers th
 
 > A 3D / 2.5D physics sim game where the gameplay is a platform with jets on both sides that fly the platform. Like the old crate-carrying games, but instead of a crate there is a bucket used to collect stuff and fly it back home.
 
-The result is a single-file browser game (`index.html`, Three.js r128 from cdnjs, no build step). A twin-jet lift platform with an open bucket catches ore thrown up by vents, carries it home without spilling, and lands on a pad to cash it in. Physics are 2D in the play plane and the rendering is 3D, which gives the 2.5D look.
+The result is a browser game with no build step (`index.html` + `engine.js` + one file per level in `levels/`, Three.js r128 from cdnjs). A twin-jet lift platform with an open bucket catches ore thrown up by vents, carries it home without spilling, and lands on a pad to cash it in. Physics are 2D in the play plane and the rendering is 3D, which gives the 2.5D look.
 
 ## How the design evolved
 
@@ -26,6 +26,7 @@ The game was built up in short rounds. Each round was one request, then implemen
 12. **Flip upright.** It's easy to end up stuck on your back, so a pause-screen button (and the `F` key) sets the platform level in the nearest clear spot.
 13. **Flip on F, and this document.**
 14. **Gale.** A basic map whose gale is a headwind both ways. The wind's direction follows the leg of the trip (out or home), not the platform's instantaneous motion, so it reads as weather turning rather than a drag force.
+15. **Tumbleweeds, and levels as separate files.** Gale got tumbleweeds that blow through on the wind and can snag on the bucket. The code was restructured so each level is its own file, independent except for the shared engine (settings, physics, rendering, HUD and shared features). See "Level architecture" below.
 
 ### Decisions made along the way
 
@@ -41,6 +42,8 @@ These are judgement calls taken during the rounds above, with the reason for eac
 - **Flip upright avoids lava.** It never leaves you in, beside or above a lava pool, because an upright platform that just slides back in isn't recovered.
 - **The gale turns on cargo, not on direction of travel.** Ore aboard means you're heading home, so the wind swings to blow from home. It swings back on delivery, on respawn, or after 4 s with an empty bucket (so a spilled load means a headwind back out to the vents). The turn passes through calm over about 2.4 s and is announced. Testing showed light and medium loads get home even at the strongest gale. Near the weight limit it's marginal, because hovering a near-full bucket leaves only about 55 N for a headwind. That trade-off was kept.
 - **Wind speed shows as knots ×10 of push strength.** Badlands now tops out around 26 kn, and the gale runs about 30–50 kn, which reads as gale force.
+- **Tumbleweeds snag by position, not exact contact.** The first rule only snagged on a contact with the bucket itself. But the jet pods stick out past the bucket, so a tumbleweed arriving side-on clipped the pod corner and hopped over the bucket, and snags almost never happened. Now any hit from above deck level tangles in the bucket, pod tops and struts. A hit from below (underside, legs) bounces off with a real impulse exchange. A snagged weed adds 0.5 kg and `sail` × wind of push. Measured: one weed raised a hovering platform's 2 s downwind drift from 4.0 m to 6.6 m. Up to three can snag. Tipping past about 70° or spinning faster than 2.4 rad/s throws them off, and the ground crew clears them at the pad.
+- **Levels are separate files with hooks.** Mechanics used to be wired into the shared loops with `if (MAP.lava)`-style checks, so every new level grew the core. Now the engine only knows a fixed set of hooks. Moving collision pieces carry a small `body` interface (`velAt`, `impulse`, `touch`), so the engine handles doors and wheels without knowing what they are. Shared features that more than one level uses (water and pipes, dry vents, cave backdrops) stay in the engine as data-driven options. The restructure was checked by rerunning every earlier test, and all the numbers came out identical (lava damage, door timings, wheel run, gale trips with tumbleweeds off).
 
 ## Core game
 
@@ -123,7 +126,7 @@ All maps share the home pad at x = 0. Each map is one entry in `MAPS`:
 | Dry Springs | 140 | light, from shift 2 | 120 | Carry water from a pipe to a dry vent |
 | Falling Doors | 180 | none | 100 | Timed door gauntlet, gated exit |
 | The Water Wheel | 170 | none | 120 | Ride a 40 m wheel into the cave; water from its stream |
-| Gale | 170 | gale, always a headwind | 120 | Wind turns when you pick up ore |
+| Gale | 170 | gale, always a headwind | 120 | Wind turns when you pick up ore; tumbleweeds snag on the bucket |
 
 ### Badlands
 
@@ -169,7 +172,45 @@ A wheel with radius 20 m and eight paddles, centred at (75, 20) (`wheel`).
 
 ### Gale
 
-Open rolling hills with vents at x = 110 (mostly gems) and 189 (richer). The `gale` block sets the strength: `base` 3.2 plus `perShift` 0.4 per shift after the first, capped at `max` 5, with ±1.3 of `gust` on top. Strength is in m/s² of push on the platform (×0.75) and on loose cargo (×0.35). `game.leg` is `out` or `home`, and `galeDir` eases between −1 and +1 over about 2.4 s. Blowing dust particles make the wind visible.
+Open rolling hills with vents at x = 110 (mostly gems) and 189 (richer). Tumbleweeds (`weeds`): 3 in the air on shift 1, plus 1 per shift up to 8. Each has radius 0.85 m and mass 0.5 kg. They're dragged toward 3 × wind speed and bounce and hop off the ground. Hits from above deck level snag (up to `catchMax` 3); see the decision above for the rest. The `gale` block sets the strength: `base` 3.2 plus `perShift` 0.4 per shift after the first, capped at `max` 5, with ±1.3 of `gust` on top. Strength is in m/s² of push on the platform (×0.75) and on loose cargo (×0.35). `game.leg` is `out` or `home`, and `galeDir` eases between −1 and +1 over about 2.4 s. Blowing dust particles make the wind visible.
+
+## Level architecture
+
+```
+index.html          page shell, styles, HUD markup; loads engine.js, then levels/*.js, then Skybucket.boot()
+engine.js           shared: physics, rendering, HUD, audio, ship, cargo, vents, water/pipes, cave backdrops,
+                    moving-piece collision, flip, game flow
+levels/*.js         Skybucket.registerLevel({ ...map data, create(K, map) })
+```
+
+A level is plain data that the engine understands (terrain, vents, quotas, fuel, wind, and the optional `cave`, `pipe` and dry vents), plus an optional `create(K, map)`. `create` runs each time the level loads. It builds the level's own state and meshes, and returns any of these hooks:
+
+| Hook | When it runs |
+| --- | --- |
+| `step(dt)` | Every physics step, before the platform moves (move doors, turn wheels) |
+| `afterShip(dt)` | Every physics step, after the platform moves (lava burn, drips, tumbleweeds) |
+| `update(dt, info)` | Once per frame. `info` holds the bucket value, mass, counts and whether you're on the pad |
+| `visuals(dt)` | Once per frame, before rendering (place meshes) |
+| `wind(t)` | Replaces the default wind |
+| `impactMult(x, y)` | Multiplier for crash damage at a contact point (lava ×3) |
+| `cargoHazard(o)` | Return true to destroy a piece of cargo (the level plays its own effect) |
+| `unsafeSpot(x, y)` | Return true to stop Flip upright from setting you down there |
+| `minimapBase(g, MM)`, `minimap(g, MM)` | Draw on the minimap once per load, or every HUD update |
+| `onStart()`, `onRespawn()`, `onDeliver(load)` | Game events |
+| `levelUpNote()` | Extra text for the shift-up banner |
+
+The kit `K` gives a level:
+
+- **Scene objects:** `THREE`, `scene`, `levelGroup` (cleared on every load), `camera`, `camTarget`.
+- **Shared materials.**
+- **Helpers:** `clamp`, `rand`, `lerp`, `canvasTex`, and others.
+- **Constants:** `G`, `PDT`, `TYPES`, `HULL`, `PTS`, `SHIP_M`, and others.
+- **Live state:** `S` (the platform), `game`, `cargo`, `map`, `vents`.
+- **World queries:** `querySegs`, `closest`, `groundHeightAt`, `roofAt`, `raycast`, `hullHit(x, y, r)`.
+- **Moving collision:** `makeSeg`, `setSeg`, `DYN_SEGS`, `DYN_VERTS`. A piece's `body` can supply `velAt(x, y, out)`, `impulse(x, y, Jx, Jy)` and `touch()`.
+- **Effects and events:** `damageShip`, `drainHull`, `flashHull`, `spawnCargo`, `removeCargo`, `banner`, `popText`, `fireP`, `smokeP`, `sparkBurst`, `audio`.
+
+Anything a level adds to `K.levelGroup`, `K.DYN_SEGS` or `K.DYN_VERTS` is cleared automatically when another level loads.
 
 ## Engine reference
 
@@ -188,7 +229,7 @@ Everything is synthesised with Web Audio: filtered noise for each jet (panned le
 
 ### Testing
 
-The game exposes a test hook, `window.__skybucket`. It gives access to the game and ship state, cargo, vents, the mine and wheel state, `physicsStep`, `updateGame`, `spawnCargo` and `loadMap`.
+The game exposes a test hook, `window.__skybucket`. It gives access to the game and ship state, cargo, vents, the current level's hooks and state (`level`), `physicsStep`, `updateGame`, `spawnCargo` and `loadMap`.
 
 Every change was checked in headless Chromium (Playwright), with the CDN script routed to a local copy of Three.js. Tests drive the physics deterministically and fly scripted autopilots. These tests set several of the tuning values in this document:
 

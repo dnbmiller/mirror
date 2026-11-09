@@ -18,7 +18,7 @@ Pick a map on the setup screen before you launch.
 
 - **The Water Wheel:** a 40 m water wheel with eight paddles fills the mouth of a cave in the hillside. The rock hugs the wheel all round, except for two openings: the entrance, low on the left at about 8 o'clock under an overhang, and the cave mouth at 3 o'clock. The stream from a nozzle above it keeps the wheel turning clockwise, about one turn every 22 s. Wait on the flat ledge in the entrance alcove, dart into a bay as it lines up with the opening, and stay level while the paddle behind carries you up and over (about 12 s). Passing under the stream fills your bucket. Fly off into the cave, then pour the water into the dry vent, as on Dry Springs (10 drops per eruption). Thrusting against a paddle in the direction it's turning speeds the wheel up by about a third; pushing the other way slows it. It eases back to normal speed once you let go. Paddle tips hit hard, and if you just sit in a bay without flying it wedges you and turns you over. Leave by the chimney at the back of the cave and fly home over the hill.
 
-- **Gale:** a plain map of open hills with two vents, and a gale that is always a headwind. On the way out it blows from the vents toward home. Once you have ore aboard it dies down and swings round to blow from home, so you fight it on the way back too. Delivering, losing a ship, or flying with an empty bucket for 4 s swings it back. It starts at about 30 kn and strengthens each shift, up to about 50 kn. Light and medium loads always make it home. Near the jets' weight limit there's almost no spare thrust to beat a headwind, so it pays to carry less per trip in the later shifts.
+- **Gale:** a plain map of open hills with two vents, and a gale that is always a headwind. On the way out it blows from the vents toward home. Once you have ore aboard it dies down and swings round to blow from home, so you fight it on the way back too. Delivering, losing a ship, or flying with an empty bucket for 4 s swings it back. It starts at about 30 kn and strengthens each shift, up to about 50 kn. Light and medium loads always make it home. Near the jets' weight limit there's almost no spare thrust to beat a headwind, so it pays to carry less per trip in the later shifts. Tumbleweeds blow through on the wind, more each shift. One that hits the platform from above deck level tangles in the bucket and rides along, adding its weight and catching the wind (about 60% more push per weed). Tip hard or spin to shake it off, or land at the pad and the ground crew pulls it off. Hits from below just bounce off and knock you about.
 
 The pause button (❚❚ in the top-right of the HUD, or `P`/`Esc`) has **Flip upright**, which sets the platform level in the nearest clear spot (not in rock, a door, a paddle or next to lava) and resumes, for when you end up stuck on your back. It also has **Back to setup**, which takes you to the setup screen to change the map or settings. So does the game-over screen.
 
@@ -28,7 +28,7 @@ The pause button (❚❚ in the top-right of the HUD, or `P`/`Esc`) has **Flip u
 
 ## Running
 
-Open `index.html` in a browser. It is a single file with no build step. Three.js (r128) loads from cdnjs, so the first load needs a network connection.
+Open `index.html` in a browser. There's no build step: the page loads `engine.js` and the level files in `levels/` as plain scripts. Three.js (r128) loads from cdnjs, so the first load needs a network connection.
 
 To serve it locally instead of opening the file directly:
 
@@ -58,10 +58,28 @@ Holding both arrows also fires both jets. `-`/`=` or the mouse wheel zoom the ca
 
 ## How it works
 
-Everything is in `index.html`:
+```
+index.html          page, styles, HUD markup, and the list of level scripts to load
+engine.js           everything shared: physics, rendering, HUD, audio, game flow
+levels/*.js         one file per level: its map data, plus any mechanics of its own
+```
 
-- **Physics:** a custom 2D rigid-body sim on the z = 0 plane, stepped at 240 Hz. The platform is one rigid body (mass, moment of inertia, two off-centre thrust points). Its hull is a set of capsule segments, and the terrain is polygons stored as segments in a uniform grid. Contacts use sequential impulses with friction and restitution. Cargo pieces are circles that collide with the terrain, with each other and with the hull segments. Their impulses go back into the platform, so a load sliding to one side of the bucket really does tip you.
+- **Physics:** a custom 2D rigid-body sim on the z = 0 plane, stepped at 240 Hz. The platform is one rigid body (mass, moment of inertia, two off-centre thrust points). Its hull is a set of capsule segments, and the terrain is polygons stored as segments in a uniform grid. Contacts use sequential impulses with friction and restitution. Cargo pieces are circles that collide with the terrain, with each other and with the hull segments. Their impulses go back into the platform, so a load sliding to one side of the bucket really does tip you. Moving pieces (doors, wheel paddles) report their own surface velocity and feel the platform's pushes.
 - **Rendering:** Three.js. The terrain polygons are extruded into 3D slabs and the camera looks across them with a slight downward tilt, which gives the 2.5D look. Exhaust, dust and smoke are GPU point sprites.
 - **Audio:** synthesised with the Web Audio API, so there are no asset files.
 
-Tuning constants (`THRUST`, `SHIP_M`, `SHIP_I`, `BURN`, the `TYPES` table) are near the top of the script. Each map is an entry in `MAPS`: its `ground` polygon, extra rock `solids` (floating islands or the cave roof), `vents`, `quotas`, fuel tank size and wind strength. Add an entry and a button with a matching `data-map` on the setup screen to make a new map. Best scores are saved separately for each map.
+Shared tuning constants (`THRUST`, `SHIP_M`, `SHIP_I`, `BURN`, the `TYPES` table) are near the top of `engine.js`. Best scores are saved separately for each level.
+
+## Adding a level
+
+1. Create `levels/my-level.js` and call `Skybucket.registerLevel({...})` with the map data:
+   - `id` and `name`.
+   - `blurb` (shown on the setup screen) and `intro` (shown at launch).
+   - `world` x-range, `fuel` tank size, `wind` strength, `sun` brightness.
+   - `quotas` and `quotaStep`.
+   - The `ground` polygon (its top edge is the surface), any extra rock `solids`, and `vents`.
+   - Optional shared features: a `cave` backdrop, a water `pipe`, and `dry: true` vents that need water.
+2. Add a `<script src="levels/my-level.js">` line to `index.html`. The setup screen lists levels in script order.
+3. If the level needs mechanics of its own, give it a `create(K, map)` function. It builds the level's state and meshes from the kit `K` and returns the hooks it wants. Anything it adds to `K.levelGroup` or `K.DYN_SEGS` is cleared automatically when another level loads. The existing levels are working examples: `long-cave.js` (lava), `falling-doors.js` (moving doors), `water-wheel.js` (a rotating body) and `gale.js` (custom wind and tumbleweeds).
+
+See `DESIGN.md` for the full list of hooks and kit functions.
