@@ -24,6 +24,8 @@ The game was built up in short rounds. Each round was one request, then implemen
 10. **Falling Doors.** A mineshaft whose ceiling doors slam shut in sequence once you're inside. The exit opens when the bucket holds enough ore. The timing was tightened twice at the designer's request: from 3.4 s apart to 0.8 s, then to "start at 2 s, 0.5 s apart" to make it properly tricky.
 11. **The Water Wheel.** A paddle wheel blocks a cave. You fly in a bay between paddles to get through, the stream that turns it also supplies water, and pushing a paddle speeds it up. It was then enlarged to 40 m with the entrance at about 8 o'clock.
 12. **Flip upright.** It's easy to end up stuck on your back, so a pause-screen button (and the `F` key) sets the platform level in the nearest clear spot.
+13. **Flip on F, and this document.**
+14. **Gale.** A basic map whose gale is a headwind both ways. The wind's direction follows the leg of the trip (out or home), not the platform's instantaneous motion, so it reads as weather turning rather than a drag force.
 
 ### Decisions made along the way
 
@@ -37,6 +39,8 @@ These are judgement calls taken during the rounds above, with the reason for eac
 - **The water wheel needs active flying.** A platform sitting in a bay with the jets off wedges in and gets turned upside down. That's intended: you fly the bay, the wheel doesn't carry a passenger. At 40 m the wheel went to eight paddles, because six left 60° bays big enough to drift through. It also got double the inertia, so a push still adds about a third rather than doubling its speed.
 - **The wheel entrance needed widening and a ledge.** A 40° entrance gave only a fraction of a second when a bay lined up, so it was widened to 60° (about 7 to 9 o'clock). The alcove floor first sloped into the paddles and ground up any platform waiting there, so it now has a flat ledge.
 - **Flip upright avoids lava.** It never leaves you in, beside or above a lava pool, because an upright platform that just slides back in isn't recovered.
+- **The gale turns on cargo, not on direction of travel.** Ore aboard means you're heading home, so the wind swings to blow from home. It swings back on delivery, on respawn, or after 4 s with an empty bucket (so a spilled load means a headwind back out to the vents). The turn passes through calm over about 2.4 s and is announced. Testing showed light and medium loads get home even at the strongest gale. Near the weight limit it's marginal, because hovering a near-full bucket leaves only about 55 N for a headwind. That trade-off was kept.
+- **Wind speed shows as knots ×10 of push strength.** Badlands now tops out around 26 kn, and the gale runs about 30–50 kn, which reads as gale force.
 
 ## Core game
 
@@ -119,6 +123,7 @@ All maps share the home pad at x = 0. Each map is one entry in `MAPS`:
 | Dry Springs | 140 | light, from shift 2 | 120 | Carry water from a pipe to a dry vent |
 | Falling Doors | 180 | none | 100 | Timed door gauntlet, gated exit |
 | The Water Wheel | 170 | none | 120 | Ride a 40 m wheel into the cave; water from its stream |
+| Gale | 170 | gale, always a headwind | 120 | Wind turns when you pick up ore |
 
 ### Badlands
 
@@ -161,6 +166,10 @@ A wheel with radius 20 m and eight paddles, centred at (75, 20) (`wheel`).
 - **The ride:** about 12 s from the entrance to the cave side. The stream (10 drops/s from a nozzle above the top) fills the bucket as you pass under it.
 - **Inside:** the cave holds a dry vent (as on Dry Springs) at x = 112, and a chimney at the back leads up to the hilltop.
 - **Pushing:** paddle contacts pass angular impulse to the wheel (`WHEEL_I = 24000`), and it eases back to base speed (`WHEEL_RELAX`). A sustained push takes it from 0.28 to about 0.37 rad/s. Pushing against the turn slows it. The speed is clamped between +0.05 and 2.2 × base.
+
+### Gale
+
+Open rolling hills with vents at x = 110 (mostly gems) and 189 (richer). The `gale` block sets the strength: `base` 3.2 plus `perShift` 0.4 per shift after the first, capped at `max` 5, with ±1.3 of `gust` on top. Strength is in m/s² of push on the platform (×0.75) and on loose cargo (×0.35). `game.leg` is `out` or `home`, and `galeDir` eases between −1 and +1 over about 2.4 s. Blowing dust particles make the wind visible.
 
 ## Engine reference
 

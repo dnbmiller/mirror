@@ -252,6 +252,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
         <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="springs">Dry Springs</button>
         <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="mine">Falling Doors</button>
         <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="wheel">The Water Wheel</button>
+        <button class="ghost mapBtn" role="radio" aria-checked="false" data-map="gale">Gale</button>
         <p class="fine" id="mapBlurb"></p>
       </div>
       <div class="zoom">
@@ -462,6 +463,26 @@ const MAPS = [
     ],
     vents: [
       { x: 112, y: 12.5, mix: [0.6, 0.3, 0.1], burst: [3, 5], dry: true },
+    ],
+  },
+  {
+    id: 'gale', name: 'Gale',
+    blurb: 'Open hills, two vents, and a gale that is always in your face. It blows from the vents on the way out, then turns to blow from home once you have ore aboard. It strengthens every shift.',
+    intro: 'Headwind out, headwind home: the gale turns when you pick up ore.',
+    world: { x0: -60, x1: 260 }, fuel: 170, wind: 0, sun: 1.25,
+    quotas: [120, 300, 600, 1000, 1500], quotaStep: 600,
+    // wind strength in m/s^2 of push on the platform's frame: base + perShift per shift after the first, capped
+    gale: { base: 3.2, perShift: 0.4, max: 5, gust: 1.3 },
+    ground: [
+      [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [16, 2], [28, 5], [40, 4],
+      [52, 8], [64, 6], [76, 2], [88, 4], [98, 1], [106, -1], [114, -1], [122, 2], [134, 7], [146, 12], [156, 9],
+      [166, 4], [176, 1], [184, -2], [194, -2], [202, 1], [214, 6], [226, 20], [234, 60], [238, 90], [260, 90],
+      [260, -60], [-70, -60],
+    ],
+    solids: [],
+    vents: [
+      { x: 110, y: -1, mix: [0.6, 0.35, 0.05], burst: [3, 4] },
+      { x: 189, y: -2, mix: [0.2, 0.45, 0.35], burst: [3, 5] },
     ],
   },
 ];
@@ -785,7 +806,7 @@ const game = {
   scheme: store.get('controls', 'direct'), gyro: store.get('gyro', true), sound: store.get('sound', true),
   // zoom 1 is the default view; 0.5 pulls the camera out to twice the distance, 1.5 moves it in
   zoom: clamp(+store.get('zoomLevel', 1) || 1, 0.5, 1.5), bucketReady: false,
-  shake: 0, wind: 0,
+  shake: 0, wind: 0, leg: 'out', galeDir: -1, emptyT: 0,
 };
 const cargo = [];
 let vents = [];
@@ -857,6 +878,12 @@ const C = Array.from({ length: 128 }, () => ({ x: 0, y: 0, nx: 0, ny: 0, pen: 0,
 const events = { clinks: [], impact: 0 };
 
 function windAt(t) {
+  if (MAP.gale) {
+    // always a headwind: galeDir swings between -1 (blowing toward home) and +1 (toward the vents)
+    const g = MAP.gale, amp = Math.min(g.max, g.base + g.perShift * (game.level - 1));
+    const gust = g.gust * (Math.sin(t * 0.9) * 0.6 + Math.sin(t * 2.3 + 1.1) * 0.4);
+    return game.galeDir * Math.max(0, amp + gust);
+  }
   if (game.level < 2 || !MAP.wind) return 0;
   const amp = Math.min(2.6, 0.75 * (game.level - 1)) * MAP.wind;
   return amp * (Math.sin(t * 0.21) * 0.8 + Math.sin(t * 0.67 + 1.3) * 0.45 + Math.sin(t * 1.9 + 0.4) * 0.15);
@@ -1718,12 +1745,13 @@ function unload(load) {
     if (i < 8) setTimeout(() => audio.tone(660 + o.t * 220 + i * 40, 0.16, 'square', 0.05, 1.5), i * 80);
   });
   game.delivered += total;
+  if (MAP.gale) setLeg('out', false);
   popText(`+${total} cr · ${load.length} ${load.length === 1 ? 'piece' : 'pieces'}`, S.x, S.y + 2.8);
   if (game.delivered >= quotaFor(game.level)) levelUp();
 }
 function levelUp() {
   while (game.delivered >= quotaFor(game.level)) game.level++;
-  const gusts = !MAP.wind ? '' : game.level === 2 ? ' The wind is picking up out there.' : ' Gusts are stronger.';
+  const gusts = MAP.gale ? ' The gale is getting stronger.' : !MAP.wind ? '' : game.level === 2 ? ' The wind is picking up out there.' : ' Gusts are stronger.';
   banner(`Shift ${game.level}`, `Quota met. Next target ${quotaFor(game.level)} cr.${gusts}`, 3.2);
   [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => audio.tone(f, 0.25, 'triangle', 0.12), i * 110));
 }
@@ -1773,6 +1801,7 @@ function respawnOrEnd() {
   if (game.lives <= 0) return gameOver();
   resetShip();
   resetMine();
+  game.leg = 'out'; game.galeDir = -1;
   ship.visible = true;
 }
 
@@ -1780,7 +1809,7 @@ function startGame() {
   audio.unlock();
   for (const o of cargo) if (!o.gone) removeCargo(o);
   cargo.length = 0;
-  Object.assign(game, { state: 'play', level: 1, delivered: 0, lives: 3, time: 0 });
+  Object.assign(game, { state: 'play', level: 1, delivered: 0, lives: 3, time: 0, leg: 'out', galeDir: -1, emptyT: 0 });
   clearDrips();
   lavaCracks.forEach(k => { k.state = 'idle'; k.t = rand(1, 6); k.bead.scale.setScalar(0.001); });
   resetMine();
@@ -1991,6 +2020,25 @@ function updateMine(dt) {
     for (let k = 0; k < 16; k++) smokeP(events.doorSlamX + rand(-3, 3), groundHeightAt(events.doorSlamX) + 0.3, rand(-3, 3.5), rand(-4, 4), rand(0.3, 1.5), 0, rand(0.8, 1.6), 0.6, 2.6, [0.6, 0.52, 0.45], 0.5, 0.3);
     events.doorSlam = 0;
   }
+}
+
+function setLeg(leg, announce) {
+  if (game.leg === leg) return;
+  game.leg = leg;
+  if (announce && game.state === 'play') {
+    banner('The wind has turned', leg === 'home' ? 'Headwind all the way home.' : 'Headwind all the way out.', 2.2);
+    audio.thud(0.35, 400, 1.2);
+  }
+}
+function updateGale(dt, bucketValue) {
+  // ore aboard turns the gale against you on the way home; delivering or flying empty turns it back
+  if (game.leg === 'out' && bucketValue > 0 && S.x > 20) setLeg('home', true);
+  if (game.leg === 'home') {
+    game.emptyT = bucketValue > 0 ? 0 : game.emptyT + dt;
+    if (game.emptyT > 4) setLeg('out', true);
+  } else game.emptyT = 0;
+  const target = game.leg === 'home' ? 1 : -1;
+  game.galeDir += clamp(target - game.galeDir, -dt / 1.2, dt / 1.2);
 }
 
 function localToBucket(o) {
@@ -2207,6 +2255,8 @@ function updateGame(dt) {
     if (t >= 1) { scene.remove(d.mesh); d.mesh.material.dispose(); delivering.splice(i, 1); sparkBurst(SILO_MOUTH.x, SILO_MOUTH.y, d.color, 6, 3); }
   }
 
+  if (MAP.gale) updateGale(dt, bucketValue);
+
   return { bucketValue, bucketMass, bucketCount, bucketWater, onPad };
 }
 
@@ -2254,6 +2304,16 @@ function updateVisuals(dt, info) {
   if (exitLamp) exitLampMat.color.setHex(mine.exit.state === 'down' ? (Math.sin(game.time * 5) > 0 ? 0xff3b2e : 0x5a1410) : 0x5dff7a);
 
   if (wheelGroup) wheelGroup.rotation.z = wheel.angle;
+
+  // blowing dust streaks in strong wind
+  if (Math.abs(game.wind) > 1.2 && dt > 0) {
+    const n = Math.min(12, Math.abs(game.wind) * dt * 30);
+    for (let k = 0; k < n; k++) {
+      const x = camTarget.x + rand(-60, 60);
+      smokeP(x, camTarget.y + rand(-24, 24), rand(-8, 3), game.wind * rand(5, 7), rand(-0.5, 0.5), 0,
+        rand(1.2, 2), 1.1, 2.4, [0.88, 0.82, 0.74], 0.2, 0);
+    }
+  }
 
   // windsock
   const ws = game.wind;
@@ -2414,7 +2474,7 @@ function updateHud(info) {
   $('homeTxt').textContent = dist < 7 ? 'here' : `${Math.round(dist)} m`;
   $('homeArrow').style.transform = `rotate(${-Math.atan2(dy, dx)}rad)`;
   const w = game.wind;
-  const windStr = Math.abs(w) < 0.15 ? 'calm' : `${w > 0 ? '→' : '←'} ${Math.abs(w * 6).toFixed(0)} kn`;
+  const windStr = Math.abs(w) < 0.15 ? 'calm' : `${w > 0 ? '→' : '←'} ${Math.abs(w * 10).toFixed(0)} kn`;
   $('windTxt').textContent = windStr;
   $('windMini').textContent = 'Wind ' + windStr;
 
@@ -2481,7 +2541,7 @@ function frame(now) {
 }
 loadMap(MAP.id);
 requestAnimationFrame(frame);
-window.__skybucket = { get wheel() { return wheel; }, mine, get lavaPools() { return lavaPools; }, get lavaCracks() { return lavaCracks; }, drips, game, S, cargo, get vents() { return vents; }, get map() { return MAP; }, keys, physicsStep, updateGame, spawnCargo, PDT, loadMap };
+window.__skybucket = { setLeg, get wheel() { return wheel; }, mine, get lavaPools() { return lavaPools; }, get lavaCracks() { return lavaCracks; }, drips, game, S, cargo, get vents() { return vents; }, get map() { return MAP; }, keys, physicsStep, updateGame, spawnCargo, PDT, loadMap };
 })();
 </script>
 </body>
