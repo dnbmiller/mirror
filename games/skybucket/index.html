@@ -40,6 +40,7 @@ body {
 }
 #app { position: fixed; inset: 0; }
 #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#skyShade { position: absolute; inset: 0; background: #1c2333; opacity: 0; pointer-events: none; }
 
 /* ---------- HUD ---------- */
 #hud {
@@ -207,6 +208,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 </head>
 <body>
 <div id="app">
+  <div id="skyShade"></div>
   <canvas id="gl"></canvas>
 
   <div id="hud" hidden>
@@ -307,6 +309,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 <script src="levels/falling-doors.js"></script>
 <script src="levels/water-wheel.js"></script>
 <script src="levels/gale.js"></script>
+<script src="levels/squalls.js"></script>
 <script>Skybucket.boot();</script>
 </body>
 </html>

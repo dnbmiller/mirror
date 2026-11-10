@@ -902,13 +902,17 @@ function spawnCargo(v) {
   cargo.push(o);
   sparkBurst(o.x, o.y, T.color, 8, 5);
 }
+// darken the sky (0 = clear, 1 = black) for weather; a layer between the page's sky and the 3D view
+function setSkyShade(a) { $('skyShade').style.opacity = String(clamp(a, 0, 1)); }
 function spawnWater(px, py) {
   const T = TYPES[WATER];
   const mesh = new THREE.Mesh(cargoGeo[WATER], cargoMat[WATER]); // shared material: never disposed
   mesh.scale.setScalar(T.r);
   scene.add(mesh);
-  cargo.push({ t: WATER, r: T.r, m: T.m, value: 0, x: px + rand(-0.15, 0.15), y: py, vx: rand(-0.3, 0.3), vy: -2,
-    z: rand(-0.5, 0.5), rot: 0, rx: 0, mesh, ground: false, groundT: 0, soakT: 0, gone: false, inBucket: false, shared: true });
+  const o = { t: WATER, r: T.r, m: T.m, value: 0, x: px + rand(-0.15, 0.15), y: py, vx: rand(-0.3, 0.3), vy: -2,
+    z: rand(-0.5, 0.5), rot: 0, rx: 0, mesh, ground: false, groundT: 0, soakT: 0, gone: false, inBucket: false, shared: true };
+  cargo.push(o);
+  return o;
 }
 function removeCargo(o) {
   o.gone = true;
@@ -1218,7 +1222,7 @@ function updateGame(dt) {
       }
       // anywhere else, water soaks into the ground
       if (!drunk && o.ground && !o.inBucket) o.soakT += dt;
-      if (drunk || o.soakT > 0.5 || o.y < -45) {
+      if (drunk || o.soakT > (MAP.soak ?? 0.5) || o.y < -45) {
         if (!drunk) smokeP(o.x, o.y, o.z, 0, 0.6, 0, 0.6, 0.3, 0.9, [0.55, 0.7, 0.85], 0.35);
         removeCargo(o);
         continue;
@@ -1443,6 +1447,7 @@ function loadMap(id) {
   ventVis = vents.map(makeVentVis);
   sock.position.y = groundHeightAt(10.5);
   sun.intensity = MAP.sun;
+  setSkyShade(0);
   game.best = store.get('best.' + MAP.id, MAP.id === 'badlands' ? store.get('best', 0) : 0);
   resetShip();
   LV = MAP.create ? MAP.create(K, MAP) || {} : {};
@@ -1559,7 +1564,7 @@ function frame(now) {
 //  Level kit: what a level's create(K) can use
 // ======================================================================
 const K = {
-  THREE, scene, levelGroup, camera, camTarget, sunSprite, darkMetal, metal,
+  THREE, scene, levelGroup, camera, camTarget, sunSprite, darkMetal, metal, sun, setSkyShade,
   clamp, rand, lerp, wrapAngle, $, store, canvasTex,
   G, PDT, TYPES, WATER, HULL, HULL_R, PTS, PR, VR, SHIP_M, SHIP_I, MAX_PAYLOAD, PAD,
   S, game, cargo, events, audio, keys,
@@ -1592,7 +1597,7 @@ const K = {
     }
     return best;
   },
-  spawnCargo, removeCargo, damageShip, drainHull, flashHull, banner, popText, fireP, smokeP, sparkBurst,
+  spawnCargo, spawnWater, removeCargo, damageShip, drainHull, flashHull, banner, popText, fireP, smokeP, sparkBurst,
 };
 
 // ======================================================================

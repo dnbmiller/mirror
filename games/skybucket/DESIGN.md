@@ -27,6 +27,7 @@ The game was built up in short rounds. Each round was one request, then implemen
 13. **Flip on F, and this document.**
 14. **Gale.** A basic map whose gale is a headwind both ways. The wind's direction follows the leg of the trip (out or home), not the platform's instantaneous motion, so it reads as weather turning rather than a drag force.
 15. **Tumbleweeds, and levels as separate files.** Gale got tumbleweeds that blow through on the wind and can snag on the bucket. The code was restructured so each level is its own file, independent except for the shared engine (settings, physics, rendering, HUD and shared features). See "Level architecture" below.
+16. **Squalls.** Rain in squalls, using the same physical droplets as Dry Springs, over a landscape with more outcrops to shelter under. The rain drips off the rock and soaks into the ground. This was the first level built entirely on the new level structure. It needed only three small engine additions: `setSkyShade`, `spawnWater` in the kit, and a per-map `soak` time.
 
 ### Decisions made along the way
 
@@ -44,6 +45,7 @@ These are judgement calls taken during the rounds above, with the reason for eac
 - **Wind speed shows as knots ×10 of push strength.** Badlands now tops out around 26 kn, and the gale runs about 30–50 kn, which reads as gale force.
 - **Tumbleweeds snag by position, not exact contact.** The first rule only snagged on a contact with the bucket itself. But the jet pods stick out past the bucket, so a tumbleweed arriving side-on clipped the pod corner and hopped over the bucket, and snags almost never happened. Now any hit from above deck level tangles in the bucket, pod tops and struts. A hit from below (underside, legs) bounces off with a real impulse exchange. A snagged weed adds 0.5 kg and `sail` × wind of push. Measured: one weed raised a hovering platform's 2 s downwind drift from 4.0 m to 6.6 m. Up to three can snag. Tipping past about 70° or spinning faster than 2.4 rad/s throws them off, and the ground crew clears them at the pad.
 - **Levels are separate files with hooks.** Mechanics used to be wired into the shared loops with `if (MAP.lava)`-style checks, so every new level grew the core. Now the engine only knows a fixed set of hooks. Moving collision pieces carry a small `body` interface (`velAt`, `impulse`, `touch`), so the engine handles doors and wheels without knowing what they are. Shared features that more than one level uses (water and pipes, dry vents, cave backdrops) stay in the engine as data-driven options. The restructure was checked by rerunning every earlier test, and all the numbers came out identical (lava damage, door timings, wheel run, gale trips with tumbleweeds off).
+- **Rain is physical only where it matters.** Rain across the whole view would be far too many bodies to simulate. So the visible rain is cheap line streaks, each of which stops at the first rock below it. Only drops in an 18 m column around the platform are real water, at up to 24 drops/s in a full squall (plus 4 per shift, capped at 40, with at most 110 drops at once). A drop only spawns where there's open sky straight above it, so sheltering under rock really keeps the bucket dry. Water lingers 1.2 s before soaking in here (`soak`), long enough for it to run off the sloped rock tops and drip off the edges. Measured: 6 s of a squall in the open put 18 drops (2.2 kg) in the bucket. Under a cap it put in none.
 
 ## Core game
 
@@ -127,6 +129,7 @@ All maps share the home pad at x = 0. Each map is one entry in `MAPS`:
 | Falling Doors | 180 | none | 100 | Timed door gauntlet, gated exit |
 | The Water Wheel | 170 | none | 120 | Ride a 40 m wheel into the cave; water from its stream |
 | Gale | 170 | gale, always a headwind | 120 | Wind turns when you pick up ore; tumbleweeds snag on the bucket |
+| Squalls | 150 | none | 120 | Rain squalls fill the bucket; shelter under outcrops |
 
 ### Badlands
 
@@ -174,6 +177,10 @@ A wheel with radius 20 m and eight paddles, centred at (75, 20) (`wheel`).
 
 Open rolling hills with vents at x = 110 (mostly gems) and 189 (richer). Tumbleweeds (`weeds`): 3 in the air on shift 1, plus 1 per shift up to 8. Each has radius 0.85 m and mass 0.5 kg. They're dragged toward 3 × wind speed and bounce and hop off the ground. Hits from above deck level snag (up to `catchMax` 3); see the decision above for the rest. The `gale` block sets the strength: `base` 3.2 plus `perShift` 0.4 per shift after the first, capped at `max` 5, with ±1.3 of `gust` on top. Strength is in m/s² of push on the platform (×0.75) and on loose cargo (×0.35). `game.leg` is `out` or `home`, and `galeDir` eases between −1 and +1 over about 2.4 s. Blowing dust particles make the wind visible.
 
+### Squalls
+
+Rolling ground with vents at x = 70, 142 and 198, and five outcrops to shelter under: a rock arm off the hill near the pad (x 42–58), mushroom caps on stems by the first and last vents, a floating slab (x 114–135) and an overhang off the hill past the second vent. Each squall cycle runs: calm for 12–18 s, minus 1 s per shift (at least 6 s), then a 3.5 s warning, then the squall for 9–13 s plus 1.2 s per shift, then 3 s easing off. The intensity eases between drizzle (0.08) and a full squall (1). It drives the sky shade, dims the sun, sets how many rain streaks show, and sets the drop rate. The ground crew drains water from the bucket at the pad on this map only.
+
 ## Level architecture
 
 ```
@@ -201,14 +208,14 @@ A level is plain data that the engine understands (terrain, vents, quotas, fuel,
 
 The kit `K` gives a level:
 
-- **Scene objects:** `THREE`, `scene`, `levelGroup` (cleared on every load), `camera`, `camTarget`.
+- **Scene objects:** `THREE`, `scene`, `levelGroup` (cleared on every load), `camera`, `camTarget`, `sun`, `setSkyShade(a)`.
 - **Shared materials.**
 - **Helpers:** `clamp`, `rand`, `lerp`, `canvasTex`, and others.
 - **Constants:** `G`, `PDT`, `TYPES`, `HULL`, `PTS`, `SHIP_M`, and others.
 - **Live state:** `S` (the platform), `game`, `cargo`, `map`, `vents`.
 - **World queries:** `querySegs`, `closest`, `groundHeightAt`, `roofAt`, `raycast`, `hullHit(x, y, r)`.
 - **Moving collision:** `makeSeg`, `setSeg`, `DYN_SEGS`, `DYN_VERTS`. A piece's `body` can supply `velAt(x, y, out)`, `impulse(x, y, Jx, Jy)` and `touch()`.
-- **Effects and events:** `damageShip`, `drainHull`, `flashHull`, `spawnCargo`, `removeCargo`, `banner`, `popText`, `fireP`, `smokeP`, `sparkBurst`, `audio`.
+- **Effects and events:** `damageShip`, `drainHull`, `flashHull`, `spawnCargo`, `spawnWater`, `removeCargo`, `banner`, `popText`, `fireP`, `smokeP`, `sparkBurst`, `audio`.
 
 Anything a level adds to `K.levelGroup`, `K.DYN_SEGS` or `K.DYN_VERTS` is cleared automatically when another level loads.
 
