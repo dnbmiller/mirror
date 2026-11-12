@@ -6,6 +6,11 @@ Skybucket.registerLevel({
   intro: 'First vent is just east of the pad.',
   world: { x0: -60, x1: 310 }, fuel: 120, wind: 1, sun: 1.35,
   quotas: [150, 400, 800, 1400, 2200, 3200], quotaStep: 1200,
+  // dusk over the badlands: the original palette, now with detail
+  theme: {
+    backdrop: { style: 'mountains', colors: ['#8d6f80', '#a8818a', '#c4988f'], haze: '#e0a988', cloud: '#f2c4a8' },
+    props: { tuft: 1.4, boulder: 0.06, shrub: 0.04 },
+  },
   ground: [
     [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1.2], [22, 4], [31, 3],
     [38, -1.5], [43, -3], [49, -3], [55, -0.5], [62, 5], [66, 13], [71, 14.5], [75, 8], [83, 2.5], [90, 1.5],

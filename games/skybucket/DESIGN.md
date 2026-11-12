@@ -6,7 +6,7 @@ This document records how Skybucket came together and how it works. It covers th
 
 > A 3D / 2.5D physics sim game where the gameplay is a platform with jets on both sides that fly the platform. Like the old crate-carrying games, but instead of a crate there is a bucket used to collect stuff and fly it back home.
 
-The result is a browser game with no build step (`index.html` + `engine.js` + one file per level in `levels/`, Three.js r128 from cdnjs). A twin-jet lift platform with an open bucket catches ore thrown up by vents, carries it home without spilling, and lands on a pad to cash it in. Physics are 2D in the play plane and the rendering is 3D, which gives the 2.5D look.
+The result is a browser game with no build step (`index.html` + `engine.js` + `scenery.js` + one file per level in `levels/`, Three.js r128 from cdnjs). A twin-jet lift platform with an open bucket catches ore thrown up by vents, carries it home without spilling, and lands on a pad to cash it in. Physics are 2D in the play plane and the rendering is 3D, which gives the 2.5D look.
 
 ## How the design evolved
 
@@ -28,6 +28,7 @@ The game was built up in short rounds. Each round was one request, then implemen
 14. **Gale.** A basic map whose gale is a headwind both ways. The wind's direction follows the leg of the trip (out or home), not the platform's instantaneous motion, so it reads as weather turning rather than a drag force.
 15. **Tumbleweeds, and levels as separate files.** Gale got tumbleweeds that blow through on the wind and can snag on the bucket. The code was restructured so each level is its own file, independent except for the shared engine (settings, physics, rendering, HUD and shared features). See "Level architecture" below.
 16. **Squalls.** Rain in squalls, using the same physical droplets as Dry Springs, over a landscape with more outcrops to shelter under. The rain drips off the rock and soaks into the ground. This was the first level built entirely on the new level structure. It needed only three small engine additions: `setSkyShade`, `spawnWater` in the kit, and a per-map `soak` time.
+17. **Scenery.** A review of what making the levels more beautiful would cost led to four steps: per-level themes, detailed rock textures with edge dressing, painted backdrops, and craggy visible outlines. Post-processing effects such as glow were skipped as too costly for phones. All four were built in a new `scenery.js`, and each level got its own environment.
 
 ### Decisions made along the way
 
@@ -46,6 +47,9 @@ These are judgement calls taken during the rounds above, with the reason for eac
 - **Tumbleweeds snag by position, not exact contact.** The first rule only snagged on a contact with the bucket itself. But the jet pods stick out past the bucket, so a tumbleweed arriving side-on clipped the pod corner and hopped over the bucket, and snags almost never happened. Now any hit from above deck level tangles in the bucket, pod tops and struts. A hit from below (underside, legs) bounces off with a real impulse exchange. A snagged weed adds 0.5 kg and `sail` × wind of push. Measured: one weed raised a hovering platform's 2 s downwind drift from 4.0 m to 6.6 m. Up to three can snag. Tipping past about 70° or spinning faster than 2.4 rad/s throws them off, and the ground crew clears them at the pad.
 - **Levels are separate files with hooks.** Mechanics used to be wired into the shared loops with `if (MAP.lava)`-style checks, so every new level grew the core. Now the engine only knows a fixed set of hooks. Moving collision pieces carry a small `body` interface (`velAt`, `impulse`, `touch`), so the engine handles doors and wheels without knowing what they are. Shared features that more than one level uses (water and pipes, dry vents, cave backdrops) stay in the engine as data-driven options. The restructure was checked by rerunning every earlier test, and all the numbers came out identical (lava damage, door timings, wheel run, gale trips with tumbleweeds off).
 - **Rain is physical only where it matters.** Rain across the whole view would be far too many bodies to simulate. So the visible rain is cheap line streaks, each of which stops at the first rock below it. Only drops in an 18 m column around the platform are real water, at up to 24 drops/s in a full squall (plus 4 per shift, capped at 40, with at most 110 drops at once). A drop only spawns where there's open sky straight above it, so sheltering under rock really keeps the bucket dry. Water lingers 1.2 s before soaking in here (`soak`), long enough for it to run off the sloped rock tops and drip off the edges. Measured: 6 s of a squall in the open put 18 drops (2.2 kg) in the bucket. Under a cap it put in none.
+- **Scenery is generated, not shipped.** Textures and backdrops are painted in code: tileable value noise for the rock strata, grain, cracks and bump maps, and canvas painting for the backdrops. This keeps the download at a few hundred KB, keeps opening the page from disk working (browsers refuse image files there), and avoids art licensing. A level's first load takes about 0.12 s on desktop and 0.05 s on the phone path, and repeat visits are instant from the cache. A theme can still point its backdrop at a real image for hand-painted art.
+- **Visuals may not mislead the physics.** The visible rock outline only wanders up to 0.3 m inside the collision outline (0.1 m outside), and stays exact on the pad and around vents. Tall props only grow behind the flight line (z < −2.6), so they never hide the platform. Low grass is allowed along the front edge, where it frames the surface you fly along.
+- **Fixed while adding scenery: mine doors stuck out of the hill.** With the new textures, a dark slab became visible on the hilltop above the mine entrance. It was the entrance door, which since Falling Doors was built had been taller than the rock above it, so its top (and collision) stood 6 m out of the hill. Three other doors also poked out by up to 0.7 m. Each door's hidden length is now worked out from the rock thickness above it. The entrance door and its trigger moved 18 m in, to where the rock is thick enough. The start delay for the doors ahead went from 2 s to 1 s to keep the race exactly as tight: in testing, 10–12 m/s entries are still crushed, 14 m/s clears every door, and 18 m/s still hits the ramp.
 
 ## Core game
 
@@ -153,10 +157,10 @@ A water tower by the pad pours 10 drops a second from a pipe at x = 16. The only
 
 ### Falling Doors
 
-A ramp leads into a 12 m tall shaft under a roof solid. Doors sit at x = 56, 85, 105, 125 and 145 (`doors`):
+A ramp leads into a 12 m tall shaft under a roof solid. Doors sit at x = 74, 85, 105, 125 and 145 (`doors`):
 
-- **The trap:** passing x = 62 seals door 0 behind you.
-- **The sequence:** the doors ahead start falling 2 s later, 0.5 s apart. Each shakes and drops dust for 0.7 s first, then falls at 1.6 g.
+- **The trap:** passing x = 80 seals door 0 behind you.
+- **The sequence:** the doors ahead start falling 1 s later, 0.5 s apart. Each shakes and drops dust for 0.7 s first, then falls at 1.6 g.
 - **Crushing:** a door that lands on the platform crushes it once (at least 10 damage, scaling with the door's speed), then rests on it until it slides out. Ore under a door is crushed.
 - **Jams:** a door that shuts ahead of you holds the rest of the chain, lifts after 6 s, and drops behind you once you're through.
 - **The exit:** the exit panel at x = 187 lifts once the bucket holds 50 cr while you're in the vault. A shaft leads up to the surface.
@@ -181,6 +185,26 @@ Open rolling hills with vents at x = 110 (mostly gems) and 189 (richer). Tumblew
 
 Rolling ground with vents at x = 70, 142 and 198, and five outcrops to shelter under: a rock arm off the hill near the pad (x 42–58), mushroom caps on stems by the first and last vents, a floating slab (x 114–135) and an overhang off the hill past the second vent. Each squall cycle runs: calm for 12–18 s, minus 1 s per shift (at least 6 s), then a 3.5 s warning, then the squall for 9–13 s plus 1.2 s per shift, then 3 s easing off. The intensity eases between drizzle (0.08) and a full squall (1). It drives the sky shade, dims the sun, sets how many rain streaks show, and sets the drop rate. The ground crew drains water from the bucket at the pad on this map only.
 
+## Scenery and themes
+
+`scenery.js` builds everything you see that isn't gameplay. It runs on each level load, after the level's own `create`, and draws only from the level's `theme`; collision is untouched. Theme fields (all optional; anything missing comes from the Badlands defaults):
+
+| Field | What it sets |
+| --- | --- |
+| `sky` | Three CSS colours: top, middle and horizon of the sky gradient |
+| `fog`, `hemi` | Fog colour; ambient light `[sky colour, ground colour, intensity]` |
+| `sun` | `{ light, glow, x, y }` for the sun's light and glow, or `null` for no sun |
+| `rock` | Strata texture: `bands` (palette), `bandsPerTile`, `warp`, `cracks`, `grain`, `bump` |
+| `top` | Ground-top texture: `colors`, `streak` (grass-like grain), `bump` |
+| `caveTint` | Colour of a cave's back wall |
+| `ridges` | Background ridges: `{ z, base, amp, freq, color, style }`, where style is `smooth`, `jagged`, `mesa` or `hills` |
+| `backdrop` | Painted backdrop: `style` (`mountains`, `mesas`, `volcano`, `hills`, `industrial`, `storm`), `colors`, `haze`, `cloud`, plus `trees` or `rain` for some styles. Or `image` for a real picture, with the painting as a fallback |
+| `props`, `caveProps` | Props per metre of upward-facing surface, outside and under a roof: `tuft`, `boulder`, `shrub`, `spire` (pines, cacti or stalagmites), `crystal` |
+| `colors` | Colour choices for each prop kind |
+| `edge` | How far (m) the visible outline may wander inside the collision outline (default 0.3) |
+
+Generated textures are 512 px (256 on phones), and backdrops 2048 × 512 (1024 × 256 on phones). Props are drawn as instanced meshes, one draw call per kind. A level can veto props in places with a `noProps(x, y)` hook; the cave uses it to keep lava pools clear, and the mine to keep door slots clear. On a level switch the engine now frees the old level's geometries, materials and textures; shared ones are marked `keep`.
+
 ## Level architecture
 
 ```
@@ -203,12 +227,13 @@ A level is plain data that the engine understands (terrain, vents, quotas, fuel,
 | `cargoHazard(o)` | Return true to destroy a piece of cargo (the level plays its own effect) |
 | `unsafeSpot(x, y)` | Return true to stop Flip upright from setting you down there |
 | `minimapBase(g, MM)`, `minimap(g, MM)` | Draw on the minimap once per load, or every HUD update |
+| `noProps(x, y)` | Return true to keep scenery props out of a spot |
 | `onStart()`, `onRespawn()`, `onDeliver(load)` | Game events |
 | `levelUpNote()` | Extra text for the shift-up banner |
 
 The kit `K` gives a level:
 
-- **Scene objects:** `THREE`, `scene`, `levelGroup` (cleared on every load), `camera`, `camTarget`, `sun`, `setSkyShade(a)`.
+- **Scene objects:** `THREE`, `scene`, `levelGroup` (cleared on every load), `camera`, `camTarget`, `sun`, `hemi`, `setSkyShade(a)`.
 - **Shared materials.**
 - **Helpers:** `clamp`, `rand`, `lerp`, `canvasTex`, and others.
 - **Constants:** `G`, `PDT`, `TYPES`, `HULL`, `PTS`, `SHIP_M`, and others.

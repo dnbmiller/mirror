@@ -10,6 +10,20 @@ Skybucket.registerLevel({
   soak: 1.2, // water lingers long enough to run off the outcrops before soaking in
   // squall timing in seconds; heavier and longer each shift (perShift), drop rate in drops/s near the platform
   rain: { calm: [12, 18], squall: [9, 13], perShift: 1.2, rate: 24, rateMax: 40, cap: 110 },
+  // a storm front: grey sky, cloud banks trailing rain, dark wet rock
+  theme: {
+    sky: ['#1e2430', '#4a5468', '#8f9aa8'], fog: '#7a8592', hemi: ['#a8b8cc', '#2e3430', 0.8],
+    sun: null,
+    rock: { bands: ['#3a4048', '#4a5058', '#33393f', '#454b52'], bandsPerTile: 8, warp: 0.5, cracks: 0.5, grain: 0.5, bump: 2.4 },
+    top: { colors: ['#3f5a3a', '#4a6640', '#344e32'], streak: 0.7, bump: 1.5 },
+    ridges: [
+      { z: -80, base: 0, amp: 18, freq: 0.025, color: '#2e3640', style: 'smooth' },
+      { z: -170, base: 4, amp: 32, freq: 0.015, color: '#46505e', style: 'hills' },
+    ],
+    backdrop: { style: 'storm', colors: ['#56606e', '#3a424e'], haze: '#8a96a4', cloud: '#6a7484', rain: '#b4c2d2' },
+    props: { tuft: 2, shrub: 0.05, boulder: 0.05 },
+    colors: { tuft: ['#4a6a40', '#5a7a48', '#3a5a36'], shrub: ['#3a5a34', '#46663c'], boulder: ['#4a5058', '#5a6068'] },
+  },
   ground: [
     [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [16, 1.5], [26, 3], [34, 6],
     [40, 7], [48, 4], [58, 1], [66, -1], [74, -1], [82, 1], [92, 2], [100, 2], [110, 4], [120, 2], [130, 0],

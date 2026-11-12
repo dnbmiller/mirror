@@ -10,6 +10,20 @@ Skybucket.registerLevel({
   // tumbleweeds in the air at once: base + perShift per shift after the first, up to max.
   // A snagged weed adds its mass and `sail` x wind of extra push on the platform.
   weeds: { r: 0.85, m: 0.5, base: 3, perShift: 1, max: 8, catchMax: 3, sail: 0.3 },
+  // a dusty desert canyon: banded sandstone, mesas, scrub and cacti
+  theme: {
+    sky: ['#5a4030', '#b8845a', '#efc58c'], fog: '#c9a274', hemi: ['#ffe0b0', '#6a4a2a', 0.85],
+    sun: { light: '#ffd8a0', glow: '#ffcf90', x: -20, y: 60 },
+    rock: { bands: ['#a8603a', '#c4784a', '#8a4e30', '#d0905e', '#b46c42'], bandsPerTile: 10, warp: 0.45, cracks: 0.45, grain: 0.4, bump: 2.2 },
+    top: { colors: ['#c8a46a', '#d4b47a', '#b8945a'], streak: 0.4, bump: 1.2 },
+    ridges: [
+      { z: -80, base: 0, amp: 20, freq: 0.025, color: '#8a5a3a', style: 'mesa' },
+      { z: -170, base: 4, amp: 26, freq: 0.014, color: '#a87a52', style: 'mesa' },
+    ],
+    backdrop: { style: 'mesas', colors: ['#b0704a', '#8e5236'], haze: '#e8c08c', cloud: '#f0d4a8' },
+    props: { tuft: 0.7, shrub: 0.05, boulder: 0.06, spire: 0.02 },
+    colors: { tuft: ['#b8a060', '#a08a4e'], shrub: ['#8a7a4a', '#7a6a3e'], boulder: ['#9a5e3a', '#b4744a'], spire: ['#5f7a3a', '#6a8a42'] },
+  },
   ground: [
     [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [16, 2], [28, 5], [40, 4],
     [52, 8], [64, 6], [76, 2], [88, 4], [98, 1], [106, -1], [114, -1], [122, 2], [134, 7], [146, 12], [156, 9],

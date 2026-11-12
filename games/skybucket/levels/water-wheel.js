@@ -10,6 +10,22 @@ Skybucket.registerLevel({
   pipe: { x: 76, y: 40.6, rate: 10, roof: true },
   // clockwise: a bay entered at about 8 o'clock rises over the top and comes down on the cave side
   wheel: { x: 75, y: 20, r: 20, n: 8, hub: 2, base: -0.28 },
+  // a lush river valley in the late afternoon: mossy rock, deep grass and tall pines
+  theme: {
+    sky: ['#2a65a0', '#7fb2d6', '#f0cc96'], fog: '#a4c0c4', hemi: ['#c8e0f0', '#3a4a30', 0.85],
+    sun: { light: '#ffe2b0', glow: '#ffd890', x: 120, y: 80 },
+    rock: { bands: ['#5e6a5c', '#6f7a68', '#55604f', '#677260'], bandsPerTile: 8, warp: 0.6, cracks: 0.4, grain: 0.45, bump: 2.2 },
+    top: { colors: ['#3f6a2e', '#4f7a36', '#36602a'], streak: 0.75, bump: 1.7 },
+    caveTint: '#6f7f72',
+    ridges: [
+      { z: -80, base: 0, amp: 18, freq: 0.025, color: '#3f5f46', style: 'hills' },
+      { z: -170, base: 6, amp: 34, freq: 0.015, color: '#6f8f8a', style: 'smooth' },
+    ],
+    backdrop: { style: 'hills', colors: ['#8fb0b4', '#6a9070', '#4f7a4a'], trees: ['#7a9ea0', '#46703f', '#2f5a2e'], haze: '#cfe0e0', cloud: '#ffffff' },
+    props: { tuft: 2.4, shrub: 0.07, spire: 0.05, boulder: 0.04 },
+    colors: { tuft: ['#4f8a32', '#3f7a2a', '#6a9a3e'], shrub: ['#3f6a2e', '#4f7a36'], spire: ['#26502c', '#2f5a32'], boulder: ['#6f7a68', '#5e6a5c'] },
+    caveProps: { boulder: 0.06, spire: 0.03, crystal: 0.02 },
+  },
   ground: [
     [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1], [24, 2], [40, 2.5],
     [55, 3.4], [61, 3.4], ...Skybucket.arcPts(75, 20, 20.6, 245, 340, 5), [98, 13], [108, 12.5], [116, 12.5], [122, 13], [126, 14],

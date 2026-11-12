@@ -30,6 +30,7 @@ function arcPts(cx, cy, r, a0, a1, step) {
 const MAPS = [];
 let MAP = null;
 let LV = {}; // the current level's hooks and state, from its create(K)
+let SC = null; // the current level's scenery (scenery.js)
 let GROUND = [];
 const PAD = { x0: -7, x1: 7, y: 0 };
 const TYPES = [
@@ -518,7 +519,8 @@ scene.fog = new THREE.Fog(0xb88a8a, 90, 430);
 const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 1200);
 camera.position.set(0, 4, 34);
 
-scene.add(new THREE.HemisphereLight(0xb9d3ff, 0x4a3530, 0.75));
+const hemi = new THREE.HemisphereLight(0xb9d3ff, 0x4a3530, 0.75);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffd2a6, 1.35);
 sun.position.set(-30, 50, 40);
 sun.castShadow = true;
@@ -538,40 +540,9 @@ function hash(n) { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.f
 function noise1(x) { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return lerp(hash(i), hash(i + 1), u); }
 function fbm(x) { return noise1(x) * 0.55 + noise1(x * 2.1 + 7) * 0.28 + noise1(x * 4.3 + 3) * 0.17; }
 
-// --- strata texture for terrain faces
-const strata = canvasTex(256, 256, (g, w, h) => {
-  for (let y = 0; y < h; y++) {
-    const band = fbm(y * 0.09) * 0.7 + fbm(y * 0.4 + 11) * 0.3;
-    const r = 70 + band * 46, gg = 52 + band * 34, b = 60 + band * 30;
-    g.fillStyle = `rgb(${r | 0},${gg | 0},${b | 0})`;
-    g.fillRect(0, y, w, 1);
-  }
-  for (let i = 0; i < 1600; i++) {
-    const v = Math.random();
-    g.fillStyle = v > 0.5 ? 'rgba(255,230,210,0.07)' : 'rgba(0,0,0,0.12)';
-    g.fillRect(Math.random() * w, Math.random() * h, rand(1, 6), 1);
-  }
-});
-strata.wrapS = strata.wrapT = THREE.RepeatWrapping;
-strata.repeat.set(1 / 22, 1 / 22);
-
-const capMat = new THREE.MeshStandardMaterial({ map: strata, roughness: 0.95, metalness: 0 });
-const topMat = new THREE.MeshStandardMaterial({ color: 0x76663f, roughness: 1, flatShading: true });
 // everything that belongs to the current map lives in this group so it can be swapped out
 const levelGroup = new THREE.Group();
 scene.add(levelGroup);
-function polyMesh(pts, depth, zFront, castShadow = true) {
-  const shape = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], p[1])));
-  const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, steps: 1 });
-  const m = new THREE.Mesh(geo, [capMat, topMat]);
-  m.position.z = zFront - depth;
-  m.receiveShadow = true; m.castShadow = castShadow;
-  levelGroup.add(m);
-  return m;
-}
-const caveWallTex = strata.clone();
-caveWallTex.needsUpdate = true;
-const caveWallMat = new THREE.MeshStandardMaterial({ map: caveWallTex, color: 0x9a8a92, roughness: 1 });
 // water tower behind the flight line, its pipe running forward and turning down over the play plane
 function buildPipe(P) {
   const pipeMat = new THREE.MeshStandardMaterial({ color: 0x6f8796, roughness: 0.5, metalness: 0.6 });
@@ -602,20 +573,6 @@ function buildPipe(P) {
   const sign = add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.1, 0.1), new THREE.MeshStandardMaterial({ color: 0x2a6fa0, roughness: 0.7 })), tx, P.y + 4.5, tz + 3.25);
   sign.castShadow = false;
 }
-const caveGlowMats = [0, 1].map(t => new THREE.MeshStandardMaterial({ color: TYPES[t].color, emissive: TYPES[t].color, emissiveIntensity: 0.6, roughness: 0.3 }));
-
-// --- distant ridges for depth
-function ridge(z, base, amp, freq, color, seed) {
-  const pts = [new THREE.Vector2(-700, -200)];
-  for (let x = -700; x <= 900; x += 8) pts.push(new THREE.Vector2(x, base + amp * fbm(x * freq + seed)));
-  pts.push(new THREE.Vector2(900, -200));
-  const m = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(pts)), new THREE.MeshBasicMaterial({ color }));
-  m.position.z = z;
-  scene.add(m);
-}
-ridge(-70, 4, 26, 0.03, 0x4c3f55, 3);
-ridge(-150, 10, 48, 0.017, 0x6e5a6f, 21);
-ridge(-270, 18, 80, 0.009, 0x9a7b84, 47);
 const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
   map: canvasTex(256, 256, (g, w) => {
     const gr = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
@@ -625,11 +582,13 @@ const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
   }), fog: false, depthWrite: false, blending: THREE.AdditiveBlending,
 }));
 sunSprite.scale.set(200, 200, 1);
+sunSprite.material.map.keep = true; // shared with levels (e.g. lava crack glows)
 scene.add(sunSprite);
 
 // --- home base
 const metal = new THREE.MeshStandardMaterial({ color: 0xc9ccd2, roughness: 0.45, metalness: 0.6 });
 const darkMetal = new THREE.MeshStandardMaterial({ color: 0x2a3140, roughness: 0.6, metalness: 0.5 });
+metal.userData.keep = darkMetal.userData.keep = true; // shared by the home base and levels
 const padLightMat = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0xffb547, emissiveIntensity: 1.2 });
 {
   const pad = new THREE.Mesh(new THREE.BoxGeometry(14.4, 0.32, 5), darkMetal);
@@ -1369,7 +1328,7 @@ function updateVisuals(dt, info) {
     sc.updateProjectionMatrix();
   }
   scene.fog.near = camPos.z + 30; scene.fog.far = camPos.z + 400;
-  sunSprite.position.set(camTarget.x * 0.6 + 60, 70, -380);
+  if (SC) SC.update(dt);
 
   fire.update(dt); smoke.update(dt);
 
@@ -1416,32 +1375,20 @@ function loadMap(id) {
   store.set('map', MAP.id);
   for (const o of cargo) if (!o.gone) removeCargo(o);
   cargo.length = 0;
-  // drop the old map's meshes and moving pieces
-  levelGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+  // drop the old map's meshes, materials, textures and moving pieces
+  const freed = new Set();
+  levelGroup.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    for (const m of [].concat(o.material || [])) {
+      if (freed.has(m) || m.userData.keep) continue;
+      freed.add(m);
+      for (const k of ['map', 'normalMap', 'emissiveMap', 'alphaMap']) if (m[k] && !m[k].keep) m[k].dispose();
+      m.dispose();
+    }
+  });
   levelGroup.clear();
   DYN_SEGS.length = 0; DYN_VERTS.length = 0;
   buildCollision();
-  polyMesh(GROUND, 18, 4);
-  MAP.solids.forEach(sd => polyMesh(sd.pts, sd.depth, sd.front, !sd.roof));
-  if (MAP.cave) {
-    // back wall so the tunnel reads as enclosed rock rather than open sky
-    const w = MAP.cave.x1 - MAP.cave.x0, y0 = MAP.cave.y0 ?? -30, y1 = MAP.cave.y1 ?? 100, h = y1 - y0;
-    caveWallTex.repeat.set(w / 24, h / 24);
-    const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, h), caveWallMat);
-    wall.position.set(MAP.cave.x0 + w / 2, y0 + h / 2, -10);
-    wall.receiveShadow = true;
-    levelGroup.add(wall);
-    // glowing crystal clusters along the floor, behind the flight line
-    for (let x = MAP.cave.x0 + 14; x < MAP.cave.x1 - 20; x += rand(9, 16)) {
-      const y = groundHeightAt(x), mat = caveGlowMats[Math.random() < 0.6 ? 0 : 1];
-      for (let k = 0; k < 3; k++) {
-        const sh = new THREE.Mesh(new THREE.ConeGeometry(rand(0.12, 0.25), rand(0.5, 1.3), 5), mat);
-        sh.position.set(x + rand(-1, 1), y + 0.2, rand(-7, -4));
-        sh.rotation.set(rand(-0.3, 0.3), 0, rand(-0.5, 0.5));
-        levelGroup.add(sh);
-      }
-    }
-  }
   vents = MAP.vents.map((d, i) => ({ ...d, i, state: 'idle', t: rand(1, 4) + i * 0.5, left: 0, glow: 0, water: 0 }));
   if (MAP.pipe) buildPipe(MAP.pipe);
   ventVis = vents.map(makeVentVis);
@@ -1451,6 +1398,8 @@ function loadMap(id) {
   game.best = store.get('best.' + MAP.id, MAP.id === 'badlands' ? store.get('best', 0) : 0);
   resetShip();
   LV = MAP.create ? MAP.create(K, MAP) || {} : {};
+  // how the level looks: terrain, textures, sky, backdrop and props (scenery.js)
+  SC = window.SkybucketScenery.build(MAP, K, LV);
   drawMinimapBase();
   document.querySelectorAll('.mapBtn').forEach(b => b.setAttribute('aria-checked', String(b.dataset.map === MAP.id)));
   $('mapBlurb').textContent = MAP.blurb;
@@ -1564,12 +1513,12 @@ function frame(now) {
 //  Level kit: what a level's create(K) can use
 // ======================================================================
 const K = {
-  THREE, scene, levelGroup, camera, camTarget, sunSprite, darkMetal, metal, sun, setSkyShade,
+  THREE, scene, levelGroup, camera, camTarget, sunSprite, darkMetal, metal, sun, hemi, setSkyShade,
   clamp, rand, lerp, wrapAngle, $, store, canvasTex,
   G, PDT, TYPES, WATER, HULL, HULL_R, PTS, PR, VR, SHIP_M, SHIP_I, MAX_PAYLOAD, PAD,
   S, game, cargo, events, audio, keys,
   get map() { return MAP; }, get vents() { return vents; }, get wind() { return game.wind; },
-  querySegs, groundHeightAt, roofAt, raycast, quotaFor, localToBucket, polyMesh,
+  querySegs, groundHeightAt, roofAt, raycast, quotaFor, localToBucket,
   DYN_SEGS, DYN_VERTS,
   // closest point on segment g to (px, py): returns the squared distance, the point is in K.cq
   cq: { x: 0, y: 0 },

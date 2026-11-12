@@ -6,9 +6,25 @@ Skybucket.registerLevel({
   intro: 'Race the falling doors to the vault. The exit opens with 50 cr in the bucket.',
   world: { x0: -60, x1: 270 }, fuel: 180, wind: 0, sun: 1.1,
   quotas: [100, 250, 500, 850, 1300], quotaStep: 500,
-  cave: { x0: 38, x1: 212, y0: -32, y1: 4 },
+  cave: { x0: 44, x1: 212, y0: -32, y1: 4 },
   // doors[0] seals the entrance behind you; the rest fall in sequence, `interval` s apart
-  doors: { xs: [56, 85, 105, 125, 145], trigger: 62, resetX: 30, first: 2, interval: 0.5, exit: { x: 187, need: 50 } },
+  doors: { xs: [74, 85, 105, 125, 145], trigger: 80, resetX: 30, first: 1, interval: 0.5, exit: { x: 187, need: 50 } },
+  // a mining town at dusk: grey slate, headframes and chimneys on the horizon
+  theme: {
+    sky: ['#1a1f2b', '#454d60', '#a8907a'], fog: '#7a767c', hemi: ['#b0b8c8', '#3a3430', 0.75],
+    sun: { light: '#ffc89a', glow: '#ffb880', x: -60, y: 45 },
+    rock: { bands: ['#4a4c52', '#5a5c60', '#3e4046', '#55545a'], bandsPerTile: 8, warp: 0.4, cracks: 0.7, grain: 0.55, bump: 2.4 },
+    top: { colors: ['#5a544a', '#6a6252', '#4a463e'], streak: 0.3, bump: 1.3 },
+    caveTint: '#7a7a84',
+    ridges: [
+      { z: -80, base: 2, amp: 22, freq: 0.03, color: '#3a3c46', style: 'jagged' },
+      { z: -170, base: 8, amp: 40, freq: 0.017, color: '#555866', style: 'smooth' },
+    ],
+    backdrop: { style: 'industrial', colors: ['#6a6a78', '#4a4a56', '#2a2a32'], haze: '#a89a8a', cloud: '#8a8486' },
+    props: { tuft: 0.8, boulder: 0.08, shrub: 0.02 },
+    colors: { tuft: ['#7a7250', '#6a6446'], boulder: ['#5a5a60', '#6a6a6e'], shrub: ['#4a5236', '#5a603e'], spire: ['#4a4a50', '#5a5a60'], crystal: ['#5ff2ff', '#ffd06a'] },
+    caveProps: { boulder: 0.07, spire: 0.03, crystal: 0.025 },
+  },
   ground: [
     [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1], [22, 2], [28, 1],
     [40, -5], [52, -11], [64, -17], [72, -20], [85, -20], [97, -19.5], [110, -20], [122, -20.5], [135, -20],
@@ -44,10 +60,26 @@ Skybucket.registerLevel({
       K.setSeg(d.segs[2], x0, y1, x1, y1); K.setSeg(d.segs[3], x0, y0, x0, y1);
       d.verts[0].x = x0; d.verts[0].y = y0; d.verts[1].x = x1; d.verts[1].y = y0;
     }
+    // top surface of the rock above the shaft at x: a raised door must fit inside it
+    function surfaceAt(x) {
+      let top = -Infinity;
+      for (const sd of map.solids) {
+        if (!sd.roof) continue;
+        for (let i = 0; i < sd.pts.length; i++) {
+          const a = sd.pts[i], b = sd.pts[(i + 1) % sd.pts.length];
+          if (a[0] === b[0] || x < Math.min(a[0], b[0]) || x > Math.max(a[0], b[0])) continue;
+          top = Math.max(top, a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]));
+        }
+      }
+      return top;
+    }
     function makeDoor(x, exit) {
       const floor = Math.max(K.groundHeightAt(x - DOOR_W / 2), K.groundHeightAt(x), K.groundHeightAt(x + DOOR_W / 2));
-      const ceil = K.roofAt(x);
-      const d = { x, floor, upY: ceil - DOOR_PEEK, h: ceil - floor + DOOR_EMBED, exit, state: exit ? 'down' : 'up',
+      const ceil = K.roofAt(x), gap = ceil - floor;
+      // tall enough to reach the floor, short enough that it never pokes out of the hill when raised
+      const embed = clamp(surfaceAt(x) - ceil - gap - 0.3, 0.3, DOOR_EMBED);
+      if (surfaceAt(x) - ceil < gap + 0.3) console.warn(`Door at x=${x}: the rock above is too thin to hide it`);
+      const d = { x, floor, upY: ceil - DOOR_PEEK, h: gap + embed, embed, exit, state: exit ? 'down' : 'up',
         vy: 0, fallAt: null, fallWhenPassed: false, downT: 0, hitShip: false, crushed: false };
       d.y = exit ? floor : d.upY;
       d.touch = () => { d.hitShip = true; }; // the engine calls this when the platform touches the door
@@ -212,8 +244,9 @@ Skybucket.registerLevel({
       },
       minimap(g, MM) {
         g.fillStyle = '#f2b31b';
-        for (const d of all()) if (d.state !== 'up') g.fillRect(MM.tx(d.x) - 1.5, MM.ty(d.y + d.h - DOOR_EMBED), 3, (d.h - DOOR_EMBED) * MM.s);
+        for (const d of all()) if (d.state !== 'up') g.fillRect(MM.tx(d.x) - 1.5, MM.ty(d.y + d.h - d.embed), 3, (d.h - d.embed) * MM.s);
       },
+      noProps: x => all().some(d => Math.abs(x - d.x) < 2), // keep door slots clear
       onStart: resetMine,
       onRespawn: resetMine,
     };

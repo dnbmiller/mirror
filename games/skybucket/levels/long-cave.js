@@ -12,6 +12,22 @@ Skybucket.registerLevel({
     pools: [{ x: 44, level: -1 }, { x: 92, level: -1.5 }, { x: 148, level: -2.8 }, { x: 214, level: -0.8 }],
     cracks: [58, 80, 118, 132, 156, 186, 206, 230, 248],
   },
+  // volcanic night: a red horizon, dark basalt, stalagmites and glowing crystals in the cave
+  theme: {
+    sky: ['#0d0710', '#2e1022', '#b4452a'], fog: '#4a2426', hemi: ['#c08070', '#2a1414', 0.7],
+    sun: { light: '#ff9a6a', glow: '#ff7a40', x: -40, y: 40 },
+    rock: { bands: ['#2b2326', '#3c2f2f', '#4a3530', '#33282b'], bandsPerTile: 8, warp: 0.9, cracks: 0.9, grain: 0.5, bump: 2.6 },
+    top: { colors: ['#3a2f2c', '#4a3a33', '#2e2624'], streak: 0.2, bump: 1.6 },
+    caveTint: '#7a5a5a',
+    ridges: [
+      { z: -80, base: 0, amp: 26, freq: 0.035, color: '#2a1a20', style: 'jagged' },
+      { z: -170, base: 4, amp: 46, freq: 0.02, color: '#3e2228', style: 'jagged' },
+    ],
+    backdrop: { style: 'volcano', colors: ['#3a1c22', '#2a1418', '#1c1014'], haze: '#ff6a2a', cloud: '#3a3034' },
+    props: { boulder: 0.08, spire: 0.03, tuft: 0.4 },
+    colors: { tuft: ['#6a5a3a', '#5a4a30'], boulder: ['#3a3030', '#4a3a36'], spire: ['#3a2e2c', '#4a3a34'], crystal: ['#ff7a3a', '#ffb060'] },
+    caveProps: { boulder: 0.06, spire: 0.06, crystal: 0.04 },
+  },
   ground: [
     [-70, 90], [-52, 90], [-48, 40], [-40, 18], [-28, 9], [-16, 3], [-8, 0], [8, 0], [14, 1], [24, 2], [34, 0],
     [44, -2], [54, 3], [62, 8], [70, 5], [80, -1], [92, -3], [102, 2], [110, 9], [116, 11], [122, 6], [134, 0],
@@ -188,6 +204,7 @@ Skybucket.registerLevel({
       },
       // never set a flipped platform down beside or over a pool, where a slope or a slip would put it in
       unsafeSpot: (x, y) => pools.some(p => x + 5.6 > p.x0 && x - 5.6 < p.x1 && y - p.level < 8),
+      noProps: (x, y) => pools.some(p => x > p.x0 - 1 && x < p.x1 + 1 && y < p.level + 1), // nothing growing in the lava
       update(dt) {
         // cracks swell and drop drips near the platform
         for (const k of cracks) {
